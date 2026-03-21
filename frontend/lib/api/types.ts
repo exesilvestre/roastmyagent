@@ -28,9 +28,19 @@ export type AttackPromptItemApi = {
   category: string;
   intent: string;
   promptText: string;
-  rationale: string | null;
 };
 
 export type AttackPromptsListApi = {
   prompts: AttackPromptItemApi[];
+};
+
+export type AttackTestStepApi = {
+  promptId: string;
+  ok: boolean;
+  statusCode: number | null;
+  detail: string | null;
+};
+
+export type AttackTestRunApi = {
+  steps: AttackTestStepApi[];
 };

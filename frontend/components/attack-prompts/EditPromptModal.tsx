@@ -44,8 +44,8 @@ export function EditPromptModal({
           Edit prompt
         </h2>
         <p className="attackPromptModal_sub">
-          Only the prompt text is editable. To change category, intent, or rationale, remove this
-          row and add a new one.
+          Only the prompt text is editable. To change category or intent, remove this row and add a
+          new one.
         </p>
         <textarea
           className="attackPromptModal_textarea"

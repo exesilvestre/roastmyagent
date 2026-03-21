@@ -28,7 +28,6 @@ class SessionAttackPrompt(Base):
     category: Mapped[str] = mapped_column(Text, nullable=False)
     intent: Mapped[str] = mapped_column(Text, nullable=False)
     prompt_text: Mapped[str] = mapped_column(Text, nullable=False)
-    rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     session: Mapped["EvaluationSession"] = relationship(
         "EvaluationSession",

@@ -9,10 +9,6 @@ class MaliciousPromptItem(BaseModel):
     )
     intent: str = Field(description="Short label for what this probe tries to surface.")
     prompt_text: str = Field(description="The exact user message to send to the target agent in a later step.")
-    rationale: str | None = Field(
-        default=None,
-        description="Why this category matters for the described target.",
-    )
 
 
 class MaliciousPromptBatch(BaseModel):
