@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.schemas.agent_connection import AgentConnectionVerifyBody, AgentConnectionVerifyResult
-from app.services.agent_connection_service import AgentConnectionService
+from app.services.agent_connection_service.agent_connection_service import AgentConnectionService
 
 router = APIRouter()
 
