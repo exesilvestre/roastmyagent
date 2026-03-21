@@ -38,12 +38,23 @@ OpenAPI: `http://localhost:8000/docs`
 ### Main endpoints (v1)
 
 - `GET /health`
+<<<<<<< HEAD
 - `GET /api/v1/sessions` list evaluation sessions
 - `POST /api/v1/sessions` create session
 - `PATCH /api/v1/sessions/{id}` update title/status
 - `GET /api/v1/llm-providers` list providers (no raw keys)
 - `PATCH /api/v1/llm-providers/{provider_id}` set `api_key` / `model` (JSON body, camelCase accepted)
 - `POST /api/v1/llm-providers/{provider_id}/activate` mark provider active (requires key + model)
+=======
+- `GET /api/v1/sessions` — list evaluation sessions
+- `POST /api/v1/sessions` — create session (optional `agentConnection` in body)
+- `PATCH /api/v1/sessions/{id}` — update title/status
+- `POST /api/v1/agent-connection/verify` — test MCP (LangChain MCP adapters) or HTTP without saving
+- `POST /api/v1/sessions/{id}/agent-connection/test` — test using stored encrypted secrets
+- `GET /api/v1/llm-providers` — list providers (no raw keys)
+- `PATCH /api/v1/llm-providers/{provider_id}` — set `api_key` / `model` (JSON body, camelCase accepted)
+- `POST /api/v1/llm-providers/{provider_id}/activate` — mark provider active (requires key + model)
+>>>>>>> d21a2e885570aa78ec5f8b62a8fe9af187e678e1
 
 ## Docker (API + Postgres)
 

@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import health, llm_providers, sessions
+from app.api.routes import agent_connection, health, llm_providers, sessions
 from app.core.config import settings
 from app.db.session import engine
 
@@ -28,4 +28,5 @@ app.include_router(health.router)
 api_v1 = APIRouter(prefix="/api/v1")
 api_v1.include_router(sessions.router, prefix="/sessions")
 api_v1.include_router(llm_providers.router, prefix="/llm-providers")
+api_v1.include_router(agent_connection.router, prefix="/agent-connection")
 app.include_router(api_v1)

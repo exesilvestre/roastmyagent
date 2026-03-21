@@ -1,9 +1,12 @@
 from datetime import datetime
 from typing import Literal
+
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
+
+from app.schemas.agent_connection import AgentConnectionCreate, AgentConnectionPublic
 
 
 class SessionCreate(BaseModel):
@@ -11,6 +14,7 @@ class SessionCreate(BaseModel):
 
     title: str = Field(min_length=1, max_length=512)
     agent_description: str | None = Field(default=None, max_length=8000)
+    agent_connection: AgentConnectionCreate | None = None
 
 
 class SessionUpdate(BaseModel):
@@ -34,3 +38,4 @@ class SessionOut(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
+    agent_connection: AgentConnectionPublic | None = None
