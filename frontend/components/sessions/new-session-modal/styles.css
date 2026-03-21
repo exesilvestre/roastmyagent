@@ -266,6 +266,17 @@
   line-height: 1.4;
 }
 
+.newSessionModal_urlConflict {
+  margin: 0 0 0.25rem;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.65rem;
+  line-height: 1.45;
+  color: #fdba74;
+  border: 1px solid rgba(251, 146, 60, 0.35);
+  border-radius: var(--radius-control);
+  background: rgba(251, 146, 60, 0.08);
+}
+
 .newSessionModal_textarea_short {
   min-height: 3.5rem;
 }

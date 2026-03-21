@@ -26,7 +26,7 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
     if (!open) {
       return;
     }
-    void fetchProviders();
+    void fetchProviders().catch(() => {});
   }, [open, fetchProviders]);
 
   useEffect(() => {

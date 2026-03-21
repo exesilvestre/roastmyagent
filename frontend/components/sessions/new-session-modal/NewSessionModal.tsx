@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ProviderSelect } from "@/components/ui/provider-select/ProviderSelect";
-import { apiFetch } from "@/lib/api/client";
+import { apiFetch, getApiBaseUrl } from "@/lib/api/client";
 import type { AgentConnectionKind } from "@/lib/types/agent-connection";
 import { useSessionStore, type CreateSessionAgentConnection } from "@/lib/stores/session-store";
 import { appToast } from "@/lib/app-toast";
@@ -42,6 +42,29 @@ type HttpAuth = "none" | "bearer" | "basic";
 const DEFAULT_JSON_BODY = '{\n  "message": "hello"\n}';
 
 type VerifyResult = { ok: boolean; detail?: string | null; preview?: string | null };
+
+function loopbackHost(hostname: string): string {
+  return hostname === "127.0.0.1" || hostname === "localhost" || hostname === "::1"
+    ? "loopback"
+    : hostname;
+}
+
+/** True if the URL targets the same host:port as this app's API (common mistake → 404 on /chat). */
+function urlTargetsSameApiAsApp(urlStr: string): boolean {
+  const t = urlStr.trim();
+  if (!t) {
+    return false;
+  }
+  try {
+    const u = new URL(t);
+    const api = new URL(getApiBaseUrl());
+    const pu = u.port || (u.protocol === "https:" ? "443" : "80");
+    const pa = api.port || (api.protocol === "https:" ? "443" : "80");
+    return loopbackHost(u.hostname) === loopbackHost(api.hostname) && pu === pa;
+  } catch {
+    return false;
+  }
+}
 
 function buildAgentConnection(
   mode: AgentConnectionKind,
@@ -278,6 +301,13 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
   const testRequestPreview = useMemo(
     () => formatTestRequestPreview(connectionPayload),
     [connectionPayload],
+  );
+
+  const httpUrlSameAsApi = useMemo(
+    () =>
+      (mode === "HTTP_LOCAL" || mode === "HTTP_REMOTE_BASIC") &&
+      urlTargetsSameApiAsApp(httpUrl),
+    [mode, httpUrl],
   );
 
   if (!open) {
@@ -585,6 +615,15 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
                       autoComplete="off"
                     />
                   </label>
+                  {httpUrlSameAsApi ? (
+                    <p className="newSessionModal_urlConflict" role="alert">
+                      This URL uses the same host and port as this app&apos;s API. The test request
+                      hits the RoastMyAgent server (you&apos;ll see{" "}
+                      <code className="newSessionModal_code">POST /chat</code> → 404), not your
+                      agent. Use your agent&apos;s URL on a different port (for example{" "}
+                      <code className="newSessionModal_code">http://localhost:8080/chat</code>).
+                    </p>
+                  ) : null}
                   <label className="newSessionModal_label">
                     Method
                     <ProviderSelect
@@ -719,7 +758,7 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
                   type="button"
                   className="newSessionModal_test"
                   disabled={testLoading || !connectionPayload}
-                  onClick={() => void handleTest()}
+                  onClick={() => void handleTest().catch(() => {})}
                 >
                   {testLoading ? "Testing…" : "Test connection"}
                 </button>
@@ -746,7 +785,7 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
                 type="button"
                 className="newSessionModal_submit"
                 disabled={submitting || !title.trim()}
-                onClick={() => void handleCreate()}
+                onClick={() => void handleCreate().catch(() => {})}
               >
                 {submitting ? "Creating…" : "Create session"}
               </button>
