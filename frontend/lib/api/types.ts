@@ -1,3 +1,4 @@
+import type { AgentConnectionKind } from "@/lib/types/agent-connection";
 import type { SessionStatus } from "@/lib/types/session";
 
 export type SessionApi = {
@@ -7,6 +8,11 @@ export type SessionApi = {
   status: SessionStatus;
   createdAt: string;
   updatedAt: string;
+  agentConnection: {
+    connectionKind: AgentConnectionKind;
+    settings: Record<string, unknown>;
+    hasSecret: boolean;
+  } | null;
 };
 
 export type LlmProviderApi = {
