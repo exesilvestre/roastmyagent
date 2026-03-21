@@ -9,7 +9,6 @@ type AddPromptModalProps = {
     category: string;
     intent: string;
     promptText: string;
-    rationale: string | null;
   }) => void;
 };
 
@@ -17,7 +16,6 @@ const empty = {
   category: "",
   intent: "",
   promptText: "",
-  rationale: "",
 };
 
 export function AddPromptModal({ open, onClose, onAdd }: AddPromptModalProps) {
@@ -42,7 +40,6 @@ export function AddPromptModal({ open, onClose, onAdd }: AddPromptModalProps) {
     const category = fields.category.trim();
     const intent = fields.intent.trim();
     const promptText = fields.promptText.trim();
-    const rationaleRaw = fields.rationale.trim();
     if (!category || !intent || !promptText) {
       return;
     }
@@ -50,7 +47,6 @@ export function AddPromptModal({ open, onClose, onAdd }: AddPromptModalProps) {
       category,
       intent,
       promptText,
-      rationale: rationaleRaw ? rationaleRaw : null,
     });
     onClose();
   };
@@ -72,8 +68,7 @@ export function AddPromptModal({ open, onClose, onAdd }: AddPromptModalProps) {
           Add prompt
         </h2>
         <p className="attackPromptModal_sub">
-          Set category, intent, and rationale here. Afterwards only the prompt text can be edited
-          (via Edit prompt).
+          Set category and intent here. Afterwards only the prompt text can be edited (via Edit).
         </p>
         <label className="attackPromptModal_label">
           Category
@@ -91,15 +86,6 @@ export function AddPromptModal({ open, onClose, onAdd }: AddPromptModalProps) {
             value={fields.intent}
             onChange={(e) => setFields((f) => ({ ...f, intent: e.target.value }))}
             autoComplete="off"
-          />
-        </label>
-        <label className="attackPromptModal_label">
-          Rationale (optional)
-          <textarea
-            className="attackPromptModal_textarea attackPromptModal_textareaShort"
-            value={fields.rationale}
-            onChange={(e) => setFields((f) => ({ ...f, rationale: e.target.value }))}
-            rows={3}
           />
         </label>
         <label className="attackPromptModal_label">

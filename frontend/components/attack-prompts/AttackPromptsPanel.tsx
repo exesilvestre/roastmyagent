@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api/client";
-import type { AttackPromptItemApi, AttackPromptsListApi } from "@/lib/api/types";
+import type { AttackPromptItemApi, AttackPromptsListApi, AttackTestRunApi } from "@/lib/api/types";
 import { appToast } from "@/lib/app-toast";
 import { AddPromptModal } from "./AddPromptModal";
 import { EditPromptModal } from "./EditPromptModal";
@@ -12,8 +12,13 @@ type AttackPromptsPanelProps = {
   sessionId: string;
 };
 
+const DELAY_OPTIONS = [5, 10, 20] as const;
+
 export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
   const [rows, setRows] = useState<AttackPromptItemApi[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [delaySeconds, setDelaySeconds] = useState<(typeof DELAY_OPTIONS)[number]>(10);
+  const [testing, setTesting] = useState(false);
   const [loadingList, setLoadingList] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -22,6 +27,8 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const rowIdsKeyRef = useRef<string>("");
+  const selectAllRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(() => {
     setLoadError(null);
@@ -41,6 +48,74 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    rowIdsKeyRef.current = "";
+    setSelectedIds(new Set());
+  }, [sessionId]);
+
+  const rowIdsKey = rows.map((r) => r.id).join("\0");
+
+  useEffect(() => {
+    if (rowIdsKeyRef.current === rowIdsKey) {
+      return;
+    }
+    const wasEmpty = rowIdsKeyRef.current === "";
+    const oldIdList = rowIdsKeyRef.current ? rowIdsKeyRef.current.split("\0") : [];
+    const oldIds = new Set(oldIdList);
+    rowIdsKeyRef.current = rowIdsKey;
+
+    setSelectedIds((prev) => {
+      const ids = rows.map((r) => r.id);
+      if (wasEmpty) {
+        return new Set(ids);
+      }
+      const next = new Set<string>();
+      for (const id of ids) {
+        if (oldIds.has(id)) {
+          if (prev.has(id)) {
+            next.add(id);
+          }
+        } else {
+          next.add(id);
+        }
+      }
+      return next;
+    });
+  }, [rows, rowIdsKey]);
+
+  const allSelected = rows.length > 0 && selectedIds.size === rows.length;
+  const someSelected = selectedIds.size > 0 && !allSelected;
+
+  useEffect(() => {
+    const el = selectAllRef.current;
+    if (el) {
+      el.indeterminate = someSelected;
+    }
+  }, [someSelected]);
+
+  const toggleSelectAll = () => {
+    if (rows.length === 0) {
+      return;
+    }
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(rows.map((r) => r.id)));
+    }
+  };
+
+  const toggleRowSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
 
   const updatePromptAt = (index: number, promptText: string) => {
     setRows((prev) =>
@@ -83,7 +158,6 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
               category: r.category,
               intent: r.intent,
               promptText: r.promptText,
-              rationale: r.rationale,
             })),
           }),
         },
@@ -118,11 +192,49 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
     setActionError(null);
   };
 
+  const handleStartTesting = async () => {
+    if (dirty) {
+      appToast.error("Save your prompts before running the test.");
+      return;
+    }
+    const chosen = rows.filter((r) => selectedIds.has(r.id));
+    if (chosen.length === 0) {
+      appToast.error("Select at least one prompt.");
+      return;
+    }
+    setActionError(null);
+    setTesting(true);
+    try {
+      const data = await apiFetch<AttackTestRunApi>(
+        `/api/v1/sessions/${sessionId}/attack-prompts/run`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            promptIds: chosen.map((r) => r.id),
+            delaySeconds,
+          }),
+        },
+      );
+      const okCount = data.steps.filter((s) => s.ok).length;
+      const failCount = data.steps.length - okCount;
+      if (failCount === 0) {
+        appToast.success(`Test finished: ${okCount} request(s) OK.`);
+      } else {
+        appToast.error(`Test finished: ${okCount} OK, ${failCount} failed.`);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Test run failed";
+      setActionError(msg);
+      appToast.error(msg);
+    } finally {
+      setTesting(false);
+    }
+  };
+
   const handleAddFromModal = (row: {
     category: string;
     intent: string;
     promptText: string;
-    rationale: string | null;
   }) => {
     setRows((prev) => [
       ...prev,
@@ -132,7 +244,14 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
     setActionError(null);
   };
 
-  const busy = generating || saving;
+  const busy = generating || saving || testing;
+  const canRunTest =
+    !loadingList &&
+    rows.length > 0 &&
+    !dirty &&
+    selectedIds.size > 0 &&
+    !generating &&
+    !saving;
 
   return (
     <section className="attackPrompts" aria-label="Adversarial prompts">
@@ -160,9 +279,9 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
         <div>
           <h2 className="attackPrompts_title">Adversarial prompts</h2>
           <p className="attackPrompts_hint">
-            Category, intent, and rationale are fixed per row. Remove a row and add a new one to
-            change them. Only the prompt text is edited (in the modal). Generate does not save until
-            you click Save.
+           Save before running a test. Testing sends each selected prompt to your HTTP agent
+            (POST body) with the chosen delay between requests. MCP targets are not supported for
+            runs yet.
           </p>
         </div>
         <div className="attackPrompts_toolbar">
@@ -193,6 +312,51 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
         </div>
       </div>
 
+      <div className="attackPrompts_testingBar" aria-label="Run attack test">
+        <div className="attackPrompts_testingBar_fields">
+          <span className="attackPrompts_testingLabel" id="attack-delay-label">
+            Delay between requests
+          </span>
+          <div
+            className="attackPrompts_segmented"
+            role="group"
+            aria-labelledby="attack-delay-label"
+          >
+            {DELAY_OPTIONS.map((sec) => (
+              <button
+                key={sec}
+                type="button"
+                className={
+                  delaySeconds === sec
+                    ? "attackPrompts_segmentedBtn attackPrompts_segmentedBtnActive"
+                    : "attackPrompts_segmentedBtn"
+                }
+                aria-pressed={delaySeconds === sec}
+                disabled={busy || loadingList}
+                onClick={() => setDelaySeconds(sec)}
+              >
+                {sec}s
+              </button>
+            ))}
+          </div>
+        </div>
+        <button
+          type="button"
+          className="attackPrompts_btn attackPrompts_startTest"
+          disabled={!canRunTest}
+          title={
+            dirty
+              ? "Save prompts before running the test"
+              : selectedIds.size === 0
+                ? "Select at least one prompt"
+                : undefined
+          }
+          onClick={() => void handleStartTesting().catch(() => {})}
+        >
+          {testing ? "Testing…" : "Start testing"}
+        </button>
+      </div>
+
       {loadError ? <p className="attackPrompts_error">{loadError}</p> : null}
       {actionError ? <p className="attackPrompts_error">{actionError}</p> : null}
       {dirty ? (
@@ -206,11 +370,21 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
           <table className="attackPrompts_table">
             <thead>
               <tr>
+                <th scope="col" className="attackPrompts_colCheck">
+                  <input
+                    ref={selectAllRef}
+                    type="checkbox"
+                    className="attackPrompts_check"
+                    checked={allSelected}
+                    onChange={toggleSelectAll}
+                    disabled={busy || loadingList || rows.length === 0}
+                    aria-label="Select all prompts for testing"
+                  />
+                </th>
                 <th scope="col">#</th>
                 <th scope="col">Category</th>
                 <th scope="col">Intent</th>
                 <th scope="col">Prompt</th>
-                <th scope="col">Rationale</th>
                 <th scope="col" className="attackPrompts_colActions">
                   {" "}
                 </th>
@@ -219,26 +393,36 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
             <tbody>
               {rows.map((row, i) => (
                 <tr key={row.id}>
+                  <td className="attackPrompts_checkCell">
+                    <input
+                      type="checkbox"
+                      className="attackPrompts_check"
+                      checked={selectedIds.has(row.id)}
+                      onChange={() => toggleRowSelected(row.id)}
+                      disabled={busy || loadingList}
+                      aria-label={`Include prompt ${i + 1} in test`}
+                    />
+                  </td>
                   <td className="attackPrompts_num">{i + 1}</td>
                   <td className="attackPrompts_cellReadonly">{row.category}</td>
                   <td className="attackPrompts_cellReadonly attackPrompts_intent">
                     {row.intent}
                   </td>
                   <td className="attackPrompts_promptCell">
-                    <p className="attackPrompts_promptPreview">{row.promptText}</p>
-                    <button
-                      type="button"
-                      className="attackPrompts_editBtn"
-                      onClick={() => setEditIndex(i)}
-                      disabled={busy}
-                    >
-                      Edit prompt
-                    </button>
-                  </td>
-                  <td className="attackPrompts_cellReadonly attackPrompts_rationale">
-                    {row.rationale ?? "—"}
+                    <div className="attackPrompts_promptBlock">
+                      <div className="attackPrompts_promptPreview">{row.promptText}</div>
+                      
+                    </div>
                   </td>
                   <td className="attackPrompts_actions">
+                      <button
+                        type="button"
+                        className="attackPrompts_editBtn"
+                        onClick={() => setEditIndex(i)}
+                        disabled={busy}
+                      >
+                        Edit
+                      </button>
                     <button
                       type="button"
                       className="attackPrompts_btnRow"
@@ -247,6 +431,7 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
                     >
                       Remove
                     </button>
+
                   </td>
                 </tr>
               ))}

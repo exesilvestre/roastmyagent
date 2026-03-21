@@ -94,12 +94,109 @@
   color: #fbbf24;
 }
 
+.attackPrompts_testingBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-bright);
+  background: var(--surface-elevated);
+}
+
+.attackPrompts_testingBar_fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
+.attackPrompts_testingLabel {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.attackPrompts_segmented {
+  display: inline-flex;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-bright);
+  overflow: hidden;
+}
+
+.attackPrompts_segmentedBtn {
+  margin: 0;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  border: none;
+  border-right: 1px solid var(--border-bright);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+}
+
+.attackPrompts_segmentedBtn:last-child {
+  border-right: none;
+}
+
+.attackPrompts_segmentedBtn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  color: var(--foreground);
+}
+
+.attackPrompts_segmentedBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.attackPrompts_segmentedBtnActive {
+  background: var(--surface-active);
+  color: var(--foreground);
+}
+
+.attackPrompts_startTest {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.attackPrompts_startTest:hover:not(:disabled) {
+  background: rgba(59, 130, 246, 0.26);
+}
+
+.attackPrompts_colCheck {
+  width: 2.25rem;
+  text-align: center;
+}
+
+.attackPrompts_checkCell {
+  vertical-align: middle;
+  text-align: center;
+}
+
+.attackPrompts_check {
+  width: 0.95rem;
+  height: 0.95rem;
+  accent-color: var(--foreground);
+  cursor: pointer;
+}
+
+.attackPrompts_check:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .attackPrompts_colActions {
-  width: 5.5rem;
+  width: 4.75rem;
 }
 
 .attackPrompts_actions {
   vertical-align: middle;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .attackPrompts_btnRow {
@@ -118,37 +215,44 @@
 }
 
 .attackPrompts_cellReadonly {
-  font-size: 0.72rem;
-  line-height: 1.45;
+  font-size: 0.7rem;
+  line-height: 1.38;
   color: var(--foreground);
   max-width: 11rem;
   word-break: break-word;
 }
 
 .attackPrompts_promptCell {
-  min-width: 12rem;
-  max-width: 22rem;
+  min-width: 11rem;
+  max-width: 20rem;
+}
+
+.attackPrompts_promptBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
 }
 
 .attackPrompts_promptPreview {
-  margin: 0 0 0.5rem;
+  margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  line-height: 1.45;
+  font-size: 0.65625rem;
+  line-height: 1.4;
   white-space: pre-wrap;
   word-break: break-word;
-  max-height: 6.5rem;
+  max-height: 3.85rem;
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 5;
-  line-clamp: 5;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   color: var(--foreground);
 }
 
 .attackPrompts_editBtn {
-  padding: 0.3rem 0.55rem;
-  font-size: 0.68rem;
+  padding: 0.22rem 0.45rem;
+  font-size: 0.65rem;
   font-weight: 500;
   border-radius: var(--radius-control);
   border: 1px solid var(--border-bright);
@@ -181,7 +285,7 @@
 
 .attackPrompts_table th,
 .attackPrompts_table td {
-  padding: 0.5rem 0.625rem;
+  padding: 0.3rem 0.45rem;
   text-align: left;
   vertical-align: top;
   border-bottom: 1px solid var(--border-subtle);
@@ -206,12 +310,6 @@
 
 .attackPrompts_intent {
   max-width: 10rem;
-}
-
-.attackPrompts_rationale {
-  max-width: 12rem;
-  color: var(--muted-foreground);
-  font-size: 0.7rem;
 }
 
 /* Modals */
@@ -316,4 +414,25 @@
 .attackPromptModal_primary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.seeMoreBtn {
+  color: #9ca3af; /* gris */
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.6rem;
+  margin-left: 4px;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.seeMoreBtn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.seeMoreBtn:active {
+  transform: scale(0.95);
 }
