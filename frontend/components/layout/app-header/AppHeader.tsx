@@ -25,7 +25,7 @@ export function AppHeader({ className = "" }: AppHeaderProps) {
             }
           >
             {active
-              ? `${active.label} · ${active.model ?? "—"}`
+              ? `${active.label} · ${active.model ?? "-"}`
               : "No active LLM provider"}
           </span>
           <button

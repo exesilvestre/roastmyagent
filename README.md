@@ -1,6 +1,6 @@
 # RoastMyAgent
 
-Open-source, local-first tool to **stress-test AI agents** with adversarial-style prompts and structured evaluation sessions. You run it on your machine and bring your own LLM provider keys—nothing is sent to us.
+Open-source, local-first tool to **stress-test AI agents** with adversarial-style prompts and structured evaluation sessions. You run it on your machine and bring your own LLM provider keys-nothing is sent to us.
 
 ## Goals
 
@@ -20,6 +20,12 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 Put the value in `.env` as `FERNET_KEY`. Treat it like a master password: back it up if you care about recovering stored keys after a restore.
 
+Session **agent connection** secrets (MCP token, basic auth password) use the same `FERNET_KEY`.
+
+### Docker and reaching an agent on your host
+
+If the API runs in Docker and your MCP or HTTP agent listens on your machine’s `localhost`, use `http://host.docker.internal:<port>` in URLs (not `http://localhost`). The Compose file maps `host.docker.internal` for Linux; Docker Desktop on Windows/macOS provides it by default.
+
 ## Stack
 
 | Part       | Tech                          |
@@ -34,7 +40,7 @@ Put the value in `.env` as `FERNET_KEY`. Treat it like a master password: back i
 
 - Docker & Docker Compose **or** Node 20+, Python 3.12+, and a local PostgreSQL instance.
 
-### Option A — Docker (API + Postgres)
+### Option A: Docker (API + Postgres)
 
 From the repo root:
 
@@ -59,7 +65,7 @@ From the repo root:
 
    App: `http://localhost:3000` (uses `NEXT_PUBLIC_API_URL`, default `http://localhost:8000`).
 
-### Option B — Dev without Docker for the API
+### Option B: Dev without Docker for the API
 
 1. Run PostgreSQL (e.g. same URL as in `.env.example` or adjust `DATABASE_URL`).
 2. In `backend/`: create a venv, `pip install -r requirements.txt`, copy `.env.example` → `.env`, set **`FERNET_KEY`** and **`DATABASE_URL`**, then `alembic upgrade head` and `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`.

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ProviderSelect } from "@/components/ui/provider-select/ProviderSelect";
 import { useLlmProviderStore } from "@/lib/stores/llm-provider-store";
 import type { LlmProviderId } from "@/lib/types/llm-provider";
 import type { ProviderConfigModalProps } from "./types";
@@ -25,7 +26,7 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
     if (!open) {
       return;
     }
-    void fetchProviders();
+    void fetchProviders().catch(() => {});
   }, [open, fetchProviders]);
 
   useEffect(() => {
@@ -47,6 +48,15 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
     setApiKeyDraft("");
     setSaveError(null);
   }, [open, selectedId, providers]);
+
+  const providerSelectOptions = useMemo(
+    () =>
+      providerOrder.map((id) => ({
+        id,
+        label: providers.find((p) => p.id === id)?.label ?? id,
+      })),
+    [providers],
+  );
 
   if (!open) {
     return null;
@@ -71,23 +81,46 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
           Keys are sent to this app&apos;s backend and encrypted at rest (Fernet). One provider
           can be active at a time.
         </p>
+        <details className="providerModal_details">
+          <summary>No cloud API key or prefer open / local?</summary>
+          <div className="providerModal_detailsBody">
+            <p>
+              You can still run models without a paid vendor key in two common ways:
+            </p>
+            <ul>
+              <li>
+                <a href="https://ollama.com" target="_blank" rel="noopener noreferrer">
+                  Ollama
+                </a>{" "}
+                — open-source runtime; download models and run them on your machine (no key to a
+                cloud LLM). In-app wiring for Ollama is planned; use the cloud providers below
+                until then, or run Ollama separately for other tools.
+              </li>
+              <li>
+                <a
+                  href="https://aistudio.google.com/apikey"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Google AI Studio
+                </a>{" "}
+                — free tier API keys for Gemini; paste the key here and pick Gemini + a model id.
+              </li>
+            </ul>
+          </div>
+        </details>
         <label className="providerModal_label providerModal_labelSelect">
           Provider
-          <select
-            className="providerModal_select"
+          <ProviderSelect
             value={selectedId}
-            onChange={(event) => {
-              setSelectedId(event.target.value as LlmProviderId);
+            onChange={(id) => {
+              setSelectedId(id as LlmProviderId);
               setSaveError(null);
             }}
+            options={providerSelectOptions}
             disabled={loading && providers.length === 0}
-          >
-            {providerOrder.map((id) => (
-              <option key={id} value={id}>
-                {providers.find((p) => p.id === id)?.label ?? id}
-              </option>
-            ))}
-          </select>
+            ariaLabel="LLM provider"
+          />
         </label>
         {loading && providers.length === 0 ? (
           <p className="providerModal_hint">Loading…</p>

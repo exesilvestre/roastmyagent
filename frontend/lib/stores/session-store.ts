@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { apiFetch } from "@/lib/api/client";
 import type { SessionApi } from "@/lib/api/types";
+import type { AgentConnectionKind } from "@/lib/types/agent-connection";
 import { Session, SessionStatus } from "@/lib/types/session";
 
 function mapSession(row: SessionApi): Session {
@@ -10,12 +11,26 @@ function mapSession(row: SessionApi): Session {
     agentDescription: row.agentDescription ?? null,
     status: row.status as SessionStatus,
     updatedAt: row.updatedAt,
+    agentConnection: row.agentConnection
+      ? {
+          connectionKind: row.agentConnection.connectionKind,
+          settings: row.agentConnection.settings,
+          hasSecret: row.agentConnection.hasSecret,
+        }
+      : null,
   };
 }
+
+export type CreateSessionAgentConnection = {
+  connectionKind: AgentConnectionKind;
+  settings: Record<string, unknown>;
+  secret?: string;
+};
 
 export type CreateSessionInput = {
   title: string;
   agentDescription?: string;
+  agentConnection?: CreateSessionAgentConnection;
 };
 
 type SessionStore = {
@@ -59,10 +74,19 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   createSession: async (input: CreateSessionInput) => {
     set({ error: null });
     try {
-      const payload: Record<string, string> = { title: input.title.trim() };
+      const payload: Record<string, unknown> = { title: input.title.trim() };
       const desc = input.agentDescription?.trim();
       if (desc) {
         payload.agentDescription = desc;
+      }
+      if (input.agentConnection) {
+        payload.agentConnection = {
+          connectionKind: input.agentConnection.connectionKind,
+          settings: input.agentConnection.settings,
+          ...(input.agentConnection.secret?.trim()
+            ? { secret: input.agentConnection.secret.trim() }
+            : {}),
+        };
       }
       const row = await apiFetch<SessionApi>("/api/v1/sessions", {
         method: "POST",

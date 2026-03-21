@@ -1,8 +1,18 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Always load `.env` from the backend package root so Alembic and uvicorn use the same DB URL
+# regardless of the shell current working directory.
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=_BACKEND_ROOT / ".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     app_name: str = "RoastMyAgent API"
     cors_origins: str = "http://localhost:3000"

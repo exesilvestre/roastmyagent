@@ -1,3 +1,4 @@
+import type { AgentConnectionKind } from "@/lib/types/agent-connection";
 import type { SessionStatus } from "@/lib/types/session";
 
 export type SessionApi = {
@@ -7,6 +8,11 @@ export type SessionApi = {
   status: SessionStatus;
   createdAt: string;
   updatedAt: string;
+  agentConnection: {
+    connectionKind: AgentConnectionKind;
+    settings: Record<string, unknown>;
+    hasSecret: boolean;
+  } | null;
 };
 
 export type LlmProviderApi = {
@@ -15,4 +21,26 @@ export type LlmProviderApi = {
   model: string | null;
   hasApiKey: boolean;
   isActive: boolean;
+};
+
+export type AttackPromptItemApi = {
+  id: string;
+  category: string;
+  intent: string;
+  promptText: string;
+};
+
+export type AttackPromptsListApi = {
+  prompts: AttackPromptItemApi[];
+};
+
+export type AttackTestStepApi = {
+  promptId: string;
+  ok: boolean;
+  statusCode: number | null;
+  detail: string | null;
+};
+
+export type AttackTestRunApi = {
+  steps: AttackTestStepApi[];
 };
