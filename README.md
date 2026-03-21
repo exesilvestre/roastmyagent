@@ -20,6 +20,12 @@ python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().d
 
 Put the value in `.env` as `FERNET_KEY`. Treat it like a master password: back it up if you care about recovering stored keys after a restore.
 
+Session **agent connection** secrets (MCP token, basic auth password) use the same `FERNET_KEY`.
+
+### Docker and reaching an agent on your host
+
+If the API runs in Docker and your MCP or HTTP agent listens on your machine’s `localhost`, use `http://host.docker.internal:<port>` in URLs (not `http://localhost`). The Compose file maps `host.docker.internal` for Linux; Docker Desktop on Windows/macOS provides it by default.
+
 ## Stack
 
 | Part       | Tech                          |
