@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -14,7 +15,6 @@ class AttackPromptDraft(BaseModel):
     category: str = ""
     intent: str = ""
     prompt_text: str = ""
-    rationale: str | None = None
 
 
 class AttackPromptsSaveRequest(BaseModel):
@@ -30,13 +30,34 @@ class AttackPromptRowOut(BaseModel):
     category: str
     intent: str
     prompt_text: str
-    rationale: str | None = None
 
 
 class AttackPromptsListResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     prompts: list[AttackPromptRowOut]
+
+
+class AttackTestRunRequest(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    prompt_ids: list[UUID]
+    delay_seconds: Literal[5, 10, 20]
+
+
+class AttackTestStepResult(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    prompt_id: UUID
+    ok: bool
+    status_code: int | None = None
+    detail: str | None = None
+
+
+class AttackTestRunResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    steps: list[AttackTestStepResult]
 
 
 def rows_to_list_response(rows: list[SessionAttackPrompt]) -> AttackPromptsListResponse:
@@ -47,7 +68,6 @@ def rows_to_list_response(rows: list[SessionAttackPrompt]) -> AttackPromptsListR
                 category=r.category,
                 intent=r.intent,
                 prompt_text=r.prompt_text,
-                rationale=r.rationale,
             )
             for r in rows
         ],
@@ -63,7 +83,6 @@ def malicious_items_to_preview_response(items: list[MaliciousPromptItem]) -> Att
                 category=i.category,
                 intent=i.intent,
                 prompt_text=i.prompt_text,
-                rationale=i.rationale,
             )
             for i in items
         ],

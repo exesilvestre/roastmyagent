@@ -40,8 +40,6 @@ class AttackPromptService:
             cat = p.category.strip()
             intent = p.intent.strip()
             text = p.prompt_text.strip()
-            rationale = p.rationale.strip() if p.rationale else ""
-            rationale_val: str | None = rationale if rationale else None
             self.db.add(
                 SessionAttackPrompt(
                     session_id=session_id,
@@ -49,7 +47,6 @@ class AttackPromptService:
                     category=cat,
                     intent=intent,
                     prompt_text=text,
-                    rationale=rationale_val,
                 )
             )
 

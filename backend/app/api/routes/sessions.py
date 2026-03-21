@@ -9,10 +9,14 @@ from app.schemas.agent_connection import AgentConnectionVerifyResult
 from app.schemas.attack_prompts import (
     AttackPromptsListResponse,
     AttackPromptsSaveRequest,
+    AttackTestRunRequest,
+    AttackTestRunResponse,
+    AttackTestStepResult,
     malicious_items_to_preview_response,
     rows_to_list_response,
 )
 from app.services.attack_prompt_service.attack_prompt_service import AttackPromptService
+from app.services.attack_test_service.attack_test_service import AttackTestService
 from app.schemas.session import SessionCreate, SessionOut, SessionUpdate
 from app.services.agent_connection_service.agent_connection_service import AgentConnectionService
 from app.services.evaluation_session_service.evaluation_session_service import EvaluationSessionService
@@ -131,6 +135,40 @@ async def generate_attack_prompts(session_id: UUID, db: DbSession) -> AttackProm
         ) from e
 
     return malicious_items_to_preview_response(items)
+
+
+@router.post(
+    "/{session_id}/attack-prompts/run",
+    response_model=AttackTestRunResponse,
+)
+async def run_attack_prompts_test(
+    session_id: UUID,
+    body: AttackTestRunRequest,
+    db: DbSession,
+) -> AttackTestRunResponse:
+    svc = EvaluationSessionService(db)
+    row = await svc.get_session(session_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="session not found")
+
+    if not body.prompt_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="select at least one prompt",
+        )
+
+    try:
+        raw_steps = await AttackTestService(db).run(
+            session_id,
+            body.prompt_ids,
+            body.delay_seconds,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+    return AttackTestRunResponse(
+        steps=[AttackTestStepResult(**s) for s in raw_steps],
+    )
 
 
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)

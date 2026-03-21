@@ -1,17 +1,13 @@
-import json
 from typing import Any
 from uuid import UUID
 from app.services.agent_connection_service.constants import CONNECTION_KIND_MCP, CONNECTION_KIND_HTTP_LOCAL, CONNECTION_KIND_HTTP_REMOTE_BASIC
-import httpx
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import decrypt_secret, encrypt_secret
 from app.models.session_agent_connection import SessionAgentConnection
 from app.schemas.agent_connection import AgentConnectionCreate, AgentConnectionPublic
-from app.services.agent_connection_service.utils import get_http_method, build_http_payload, resolve_http_auth, get_http_timeout
-from app.services.agent_connection_service.utils import build_mcp_server_config
-from app.services.agent_connection_service.constants import HTTP_METHOD_GET, HTTP_METHOD_POST
+from app.services.agent_connection_service.utils import build_mcp_server_config, execute_http_with_settings
 
 class AgentConnectionService:
 
@@ -49,53 +45,7 @@ class AgentConnectionService:
         settings: dict[str, Any],
         secret: str | None,
     ) -> dict[str, Any]:
-        url = (settings.get("url") or "").strip()
-        if not url:
-            return {"ok": False, "detail": "url is required"}
-
-        method = get_http_method(settings)
-        try:
-            auth, extra_headers = resolve_http_auth(settings, secret)
-        except ValueError as e:
-            return {"ok": False, "detail": str(e)}
-
-        timeout = get_http_timeout()
-
-        try:
-            async with httpx.AsyncClient(timeout=timeout, auth=auth) as client:
-                if method == HTTP_METHOD_GET:
-                    r = await client.get(url, headers=extra_headers or None)
-                else:
-                    try:
-                        body_bytes, content_type = build_http_payload(settings)
-                    except ValueError as e:
-                        return {"ok": False, "detail": str(e)}
-                    r = await client.post(
-                        url,
-                        content=body_bytes,
-                        headers={
-                            "Content-Type": content_type,
-                            **extra_headers,
-                        },
-                    )
-        except Exception as e:
-            return {"ok": False, "detail": str(e) or "request failed"}
-
-        ok = 200 <= r.status_code < 300
-        detail: str | None = None
-        if not ok:
-            if r.status_code == 404:
-                detail = (
-                    "HTTP 404 — check path and host/port. If the port matches this app's API "
-                    "server, use your agent's URL on a different port."
-                )
-            else:
-                detail = f"HTTP {r.status_code}"
-        return {
-            "ok": ok,
-            "status_code": r.status_code,
-            "detail": detail,
-        }
+        return await execute_http_with_settings(settings, secret, post_body=None)
 
     @classmethod
     async def verify(
