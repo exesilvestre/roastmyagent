@@ -1,0 +1,51 @@
+.appHeader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  height: var(--app-header-height);
+  padding: 0 1rem;
+  border-bottom: 1px solid var(--border-bright);
+  background: var(--background);
+}
+
+.appHeader_title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+}
+
+.appHeader_right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.appHeader_hint {
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(18rem, 40vw);
+}
+
+.appHeader_button {
+  flex-shrink: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  font-size: 0.72rem;
+  line-height: 1;
+  padding: 0.42rem 0.65rem;
+  cursor: pointer;
+}

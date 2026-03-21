@@ -1,0 +1,66 @@
+.sessionSidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 0.5rem 0.5rem 0.625rem;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-sizing: border-box;
+}
+
+.sessionSidebar_new {
+  margin: 0 0 0.625rem;
+  width: 100%;
+  padding: 0.375rem 0.5rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.sessionSidebar_new:hover {
+  background: var(--surface-hover);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.sessionSidebar_error {
+  margin: 0 0 0.5rem;
+  font-size: 0.65rem;
+  color: #fca5a5;
+  line-height: 1.35;
+}
+
+.sessionSidebar_muted {
+  margin: 0;
+  padding: 0 0.25rem;
+  font-size: 0.6875rem;
+  color: var(--muted-foreground);
+}
+
+.sessionSidebar_label {
+  font-size: 0.5625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  padding: 0 0.25rem 0.375rem;
+}
+
+.sessionSidebar_list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1875rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
+  padding-right: 0.0625rem;
+}

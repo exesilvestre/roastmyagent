@@ -1,0 +1,117 @@
+.appShell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+}
+
+.appShell_panels {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  padding-top: var(--app-header-height);
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-bottom: 0.5rem;
+  box-sizing: border-box;
+  gap: 0.5rem;
+}
+
+.appShell_sidebarWrap {
+  flex-shrink: 0;
+  width: var(--sidebar-width-expanded);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+  align-self: stretch;
+  display: flex;
+  min-height: 0;
+}
+
+.appShell_sidebar {
+  width: 100%;
+  min-width: 0;
+}
+
+.appShell_main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1.5rem;
+  overflow: auto;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-sizing: border-box;
+}
+
+.appShell_title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.375rem;
+}
+
+.appShell_subtitle {
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  margin: 0 0 1rem;
+}
+
+.appShell_agent {
+  margin: 0 0 1.25rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-bright);
+  background: var(--surface-elevated);
+  max-height: 12rem;
+  overflow: auto;
+}
+
+.appShell_agentTitle {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.appShell_agentText {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--foreground);
+  font-family: inherit;
+}
+
+.appShell_body {
+  flex: 1;
+  min-height: 8rem;
+  border-radius: var(--radius-control);
+  border: 1px dashed var(--border-bright);
+  background: var(--surface-elevated);
+  padding: 1.25rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.appShell_empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 0.75rem;
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+}
+
+.appShell_emptyText {
+  margin: 0;
+}

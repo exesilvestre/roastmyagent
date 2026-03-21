@@ -1,0 +1,39 @@
+.appToast_container.Toastify__toast-container {
+  width: auto;
+  max-width: min(18rem, calc(100vw - 1.5rem));
+  padding: 0.5rem;
+}
+
+.appToast_container .Toastify__toast {
+  margin-bottom: 0.35rem;
+  min-height: auto;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.appToast_container .Toastify__toast-body {
+  padding: 0;
+  margin: 0;
+}
+
+.appToast_container .Toastify__toast--success {
+  border-color: rgba(34, 197, 94, 0.45);
+}
+
+.appToast_container .Toastify__toast--error {
+  border-color: rgba(248, 113, 113, 0.5);
+}
+
+.appToast_container .Toastify__close-button {
+  opacity: 0.55;
+}
+
+.appToast_container .Toastify__close-button:hover {
+  opacity: 1;
+}

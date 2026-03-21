@@ -1,0 +1,112 @@
+.newSessionModal_overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 1rem;
+}
+
+.newSessionModal {
+  width: min(26rem, 100%);
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  padding: 1rem;
+}
+
+.newSessionModal_header {
+  margin: 0;
+}
+
+.newSessionModal_title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.newSessionModal_hint {
+  margin: 0.5rem 0 0.75rem;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.newSessionModal_form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.newSessionModal_label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.67rem;
+  color: var(--muted-foreground);
+}
+
+.newSessionModal_input,
+.newSessionModal_textarea {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.4rem;
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  padding: 0.4rem 0.45rem;
+  font-size: 0.75rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.newSessionModal_textarea {
+  min-height: 6.5rem;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.45;
+}
+
+.newSessionModal_input:focus,
+.newSessionModal_textarea:focus {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.newSessionModal_actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.newSessionModal_cancel {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  font-size: 0.72rem;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+}
+
+.newSessionModal_submit {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--foreground);
+  color: var(--surface);
+  font-size: 0.72rem;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+}
+
+.newSessionModal_submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.newSessionModal_error {
+  margin: 0;
+  font-size: 0.65rem;
+  color: #fca5a5;
+}

@@ -1,0 +1,122 @@
+.providerModal_overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 1rem;
+}
+
+.providerModal {
+  width: min(24rem, 100%);
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  padding: 1rem;
+}
+
+.providerModal_header {
+  margin: 0;
+}
+
+.providerModal_title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.providerModal_hint {
+  margin: 0.5rem 0 0.75rem;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.providerModal_labelSelect {
+  margin-bottom: 0.65rem;
+}
+
+.providerModal_select {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.4rem;
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  padding: 0.4rem 0.45rem;
+  font-size: 0.75rem;
+  outline: none;
+  cursor: pointer;
+}
+
+.providerModal_form {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-elevated);
+  padding: 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.providerModal_formHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.providerModal_formTitle {
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.providerModal_badge {
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  border: 1px solid var(--border-bright);
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+}
+
+.providerModal_label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.67rem;
+  color: var(--muted-foreground);
+}
+
+.providerModal_input {
+  width: 100%;
+  border: 1px solid var(--border-strong);
+  border-radius: 0.4rem;
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 0.35rem 0.45rem;
+  font-size: 0.72rem;
+  outline: none;
+}
+
+.providerModal_input:focus {
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.providerModal_error {
+  margin: 0;
+  font-size: 0.65rem;
+  color: #fca5a5;
+}
+
+.providerModal_activate {
+  margin-top: 0.25rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 0.72rem;
+  padding: 0.45rem 0.5rem;
+  cursor: pointer;
+}
