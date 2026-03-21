@@ -22,3 +22,15 @@ export type LlmProviderApi = {
   hasApiKey: boolean;
   isActive: boolean;
 };
+
+export type AttackPromptItemApi = {
+  id: string;
+  category: string;
+  intent: string;
+  promptText: string;
+  rationale: string | null;
+};
+
+export type AttackPromptsListApi = {
+  prompts: AttackPromptItemApi[];
+};

@@ -25,7 +25,7 @@ export function ConfirmModal({
   };
 
   const handleConfirm = () => {
-    void onConfirm();
+    void Promise.resolve(onConfirm()).catch(() => {});
   };
 
   const confirmClass =

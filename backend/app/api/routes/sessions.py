@@ -6,7 +6,13 @@ from app.agents.attacker.context import build_attacker_context
 from app.agents.attacker.graph import run_attacker_graph
 from app.api.deps import DbSession
 from app.schemas.agent_connection import AgentConnectionVerifyResult
-from app.schemas.attack_prompts import AttackPromptsGenerateResponse, malicious_items_to_response
+from app.schemas.attack_prompts import (
+    AttackPromptsListResponse,
+    AttackPromptsSaveRequest,
+    malicious_items_to_preview_response,
+    rows_to_list_response,
+)
+from app.services.attack_prompt_service.attack_prompt_service import AttackPromptService
 from app.schemas.session import SessionCreate, SessionOut, SessionUpdate
 from app.services.agent_connection_service.agent_connection_service import AgentConnectionService
 from app.services.evaluation_session_service.evaluation_session_service import EvaluationSessionService
@@ -65,11 +71,37 @@ async def test_agent_connection(session_id: UUID, db: DbSession) -> AgentConnect
     )
 
 
+@router.get(
+    "/{session_id}/attack-prompts",
+    response_model=AttackPromptsListResponse,
+)
+async def list_attack_prompts(session_id: UUID, db: DbSession) -> AttackPromptsListResponse:
+    rows = await AttackPromptService(db).list_for_session(session_id)
+    if rows is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="session not found")
+    return rows_to_list_response(rows)
+
+
+@router.put(
+    "/{session_id}/attack-prompts",
+    response_model=AttackPromptsListResponse,
+)
+async def save_attack_prompts(
+    session_id: UUID,
+    body: AttackPromptsSaveRequest,
+    db: DbSession,
+) -> AttackPromptsListResponse:
+    rows = await AttackPromptService(db).replace_prompts(session_id, body.prompts)
+    if rows is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="session not found")
+    return rows_to_list_response(rows)
+
+
 @router.post(
     "/{session_id}/attack-prompts/generate",
-    response_model=AttackPromptsGenerateResponse,
+    response_model=AttackPromptsListResponse,
 )
-async def generate_attack_prompts(session_id: UUID, db: DbSession) -> AttackPromptsGenerateResponse:
+async def generate_attack_prompts(session_id: UUID, db: DbSession) -> AttackPromptsListResponse:
     svc = EvaluationSessionService(db)
     row = await svc.get_session(session_id)
     if row is None:
@@ -98,7 +130,7 @@ async def generate_attack_prompts(session_id: UUID, db: DbSession) -> AttackProm
             detail=f"LLM generation failed: {e!s}",
         ) from e
 
-    return malicious_items_to_response(items)
+    return malicious_items_to_preview_response(items)
 
 
 @router.delete("/{session_id}", status_code=status.HTTP_204_NO_CONTENT)

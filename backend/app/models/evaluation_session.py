@@ -10,6 +10,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.session_agent_connection import SessionAgentConnection
+    from app.models.session_attack_prompt import SessionAttackPrompt
 
 
 class EvaluationSession(Base):
@@ -37,5 +38,10 @@ class EvaluationSession(Base):
         "SessionAgentConnection",
         back_populates="session",
         uselist=False,
+        cascade="all, delete-orphan",
+    )
+    attack_prompts: Mapped[list["SessionAttackPrompt"]] = relationship(
+        "SessionAttackPrompt",
+        back_populates="session",
         cascade="all, delete-orphan",
     )

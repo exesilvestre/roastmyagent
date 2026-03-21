@@ -16,8 +16,8 @@ export function AppShell({ children }: AppShellProps) {
   const active = sessions.find((s) => s.id === activeSessionId);
 
   useEffect(() => {
-    void fetchSessions();
-    void fetchProviders();
+    void fetchSessions().catch(() => {});
+    void fetchProviders().catch(() => {});
   }, [fetchSessions, fetchProviders]);
 
   return (
