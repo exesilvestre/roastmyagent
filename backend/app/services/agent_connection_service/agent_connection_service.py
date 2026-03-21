@@ -1,7 +1,7 @@
 import json
 from typing import Any
 from uuid import UUID
-
+from app.services.agent_connection_service.constants import CONNECTION_KIND_MCP, CONNECTION_KIND_HTTP_LOCAL, CONNECTION_KIND_HTTP_REMOTE_BASIC
 import httpx
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from sqlalchemy import select
@@ -9,57 +9,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import decrypt_secret, encrypt_secret
 from app.models.session_agent_connection import SessionAgentConnection
 from app.schemas.agent_connection import AgentConnectionCreate, AgentConnectionPublic
-
-_PREVIEW_MAX = 600
-
+from app.services.agent_connection_service.utils import get_http_method, build_http_payload, resolve_http_auth, get_http_timeout
+from app.services.agent_connection_service.utils import build_mcp_server_config
+from app.services.agent_connection_service.constants import HTTP_METHOD_GET, HTTP_METHOD_POST
 
 class AgentConnectionService:
-    @staticmethod
-    def _preview(text: str) -> str:
-        t = text.strip()
-        if len(t) <= _PREVIEW_MAX:
-            return t
-        return t[:_PREVIEW_MAX] + "…"
 
     @staticmethod
     def _mcp_server_config(settings: dict[str, Any], secret: str | None) -> dict[str, Any]:
-        name = "target"
-        transport = (settings.get("transport") or "http").strip().lower()
-        headers: dict[str, str] = {}
-        if secret and secret.strip():
-            headers["Authorization"] = f"Bearer {secret.strip()}"
-
-        if transport == "stdio":
-            cmd = settings.get("command")
-            if not cmd or not str(cmd).strip():
-                raise ValueError("command is required for stdio MCP")
-            args = settings.get("args")
-            if args is None:
-                args = []
-            if not isinstance(args, list):
-                raise ValueError("args must be a list of strings")
-            return {
-                name: {
-                    "transport": "stdio",
-                    "command": str(cmd).strip(),
-                    "args": [str(a) for a in args],
-                }
-            }
-
-        url = (settings.get("url") or "").strip()
-        if not url:
-            raise ValueError("url is required for MCP")
-
-        if transport == "sse":
-            block: dict[str, Any] = {"transport": "sse", "url": url}
-            if headers:
-                block["headers"] = headers
-            return {name: block}
-
-        block = {"transport": "http", "url": url}
-        if headers:
-            block["headers"] = headers
-        return {name: block}
+        try:
+            return build_mcp_server_config(settings, secret)
+        except ValueError as e:
+            raise ValueError(f"invalid MCP server config: {e}") from e
 
     @classmethod
     async def verify_mcp(cls, settings: dict[str, Any], secret: str | None) -> dict[str, Any]:
@@ -80,21 +41,7 @@ class AgentConnectionService:
             if n:
                 names.append(str(n))
         preview = f"tools: {len(tools)} ({', '.join(names[:12])})"
-        return {"ok": True, "detail": None, "preview": cls._preview(preview)}
-
-    @staticmethod
-    def _http_post_payload(settings: dict[str, Any]) -> tuple[bytes, str]:
-        body_kind = (settings.get("bodyKind") or settings.get("body_kind") or "json").lower()
-        raw = settings.get("bodyContent")
-        if body_kind == "text":
-            text = raw.strip() if isinstance(raw, str) and raw.strip() else "hello"
-            return text.encode("utf-8"), "text/plain; charset=utf-8"
-        json_str = raw.strip() if isinstance(raw, str) and raw.strip() else '{"message":"hello"}'
-        try:
-            parsed = json.loads(json_str)
-        except json.JSONDecodeError as e:
-            raise ValueError(f"invalid JSON body: {e}") from e
-        return json.dumps(parsed).encode("utf-8"), "application/json; charset=utf-8"
+        return {"ok": True, "detail": None, "preview": preview or None}
 
     @classmethod
     async def verify_http(
@@ -104,46 +51,25 @@ class AgentConnectionService:
     ) -> dict[str, Any]:
         url = (settings.get("url") or "").strip()
         if not url:
-            return {"ok": False, "detail": "url is required", "preview": None}
+            return {"ok": False, "detail": "url is required"}
 
-        method = (settings.get("httpMethod") or settings.get("http_method") or "POST").upper()
-        if method not in ("GET", "POST"):
-            return {"ok": False, "detail": "httpMethod must be GET or POST", "preview": None}
+        method = get_http_method(settings)
+        try:
+            auth, extra_headers = resolve_http_auth(settings, secret)
+        except ValueError as e:
+            return {"ok": False, "detail": str(e)}
 
-        auth: httpx.Auth | None = None
-        extra_headers: dict[str, str] = {}
-        raw_auth = (settings.get("authType") or "").strip().lower()
-        if not raw_auth:
-            if (settings.get("username") or "").strip():
-                auth_type = "basic"
-            elif secret and str(secret).strip():
-                auth_type = "bearer"
-            else:
-                auth_type = "none"
-        else:
-            auth_type = raw_auth
-        if auth_type == "bearer":
-            if not secret or not str(secret).strip():
-                return {"ok": False, "detail": "bearer token is required", "preview": None}
-            extra_headers["Authorization"] = f"Bearer {str(secret).strip()}"
-        elif auth_type == "basic":
-            user = (settings.get("username") or "").strip()
-            if not user:
-                return {"ok": False, "detail": "username is required", "preview": None}
-            if not secret or not str(secret).strip():
-                return {"ok": False, "detail": "password is required", "preview": None}
-            auth = httpx.BasicAuth(user, str(secret).strip())
+        timeout = get_http_timeout()
 
-        timeout = httpx.Timeout(20.0)
         try:
             async with httpx.AsyncClient(timeout=timeout, auth=auth) as client:
-                if method == "GET":
+                if method == HTTP_METHOD_GET:
                     r = await client.get(url, headers=extra_headers or None)
                 else:
                     try:
-                        body_bytes, content_type = cls._http_post_payload(settings)
+                        body_bytes, content_type = build_http_payload(settings)
                     except ValueError as e:
-                        return {"ok": False, "detail": str(e), "preview": None}
+                        return {"ok": False, "detail": str(e)}
                     r = await client.post(
                         url,
                         content=body_bytes,
@@ -153,15 +79,22 @@ class AgentConnectionService:
                         },
                     )
         except Exception as e:
-            return {"ok": False, "detail": str(e) or "request failed", "preview": None}
+            return {"ok": False, "detail": str(e) or "request failed"}
 
-        text = r.text or ""
-        preview = f"HTTP {r.status_code} {cls._preview(text)}"
         ok = 200 <= r.status_code < 300
+        detail: str | None = None
+        if not ok:
+            if r.status_code == 404:
+                detail = (
+                    "HTTP 404 — check path and host/port. If the port matches this app's API "
+                    "server, use your agent's URL on a different port."
+                )
+            else:
+                detail = f"HTTP {r.status_code}"
         return {
             "ok": ok,
-            "detail": None if ok else f"HTTP {r.status_code}",
-            "preview": cls._preview(preview),
+            "status_code": r.status_code,
+            "detail": detail,
         }
 
     @classmethod
@@ -171,9 +104,9 @@ class AgentConnectionService:
         settings: dict[str, Any],
         secret: str | None,
     ) -> dict[str, Any]:
-        if connection_kind == "MCP":
+        if connection_kind == CONNECTION_KIND_MCP:
             return await cls.verify_mcp(settings, secret)
-        if connection_kind in ("HTTP_LOCAL", "HTTP_REMOTE_BASIC"):
+        if connection_kind in (CONNECTION_KIND_HTTP_LOCAL, CONNECTION_KIND_HTTP_REMOTE_BASIC):
             return await cls.verify_http(settings, secret)
         return {"ok": False, "detail": "unknown connection kind", "preview": None}
 
