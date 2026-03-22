@@ -15,6 +15,10 @@ def _judge_cell(jg: dict[str, Any]) -> str:
     err = jg.get("error")
     if err:
         return str(err)
+    brief = jg.get("constraintSummary") if jg.get("constraintSummary") is not None else jg.get(
+        "constraint_summary",
+    )
+    brief_s = str(brief).strip() if brief else ""
     v = jg.get("verdict")
     s = jg.get("score")
     top = ""
@@ -26,9 +30,12 @@ def _judge_cell(jg: dict[str, Any]) -> str:
         top = str(s)
     r = jg.get("reasoning")
     bottom = str(r).strip() if r else ""
-    if top and bottom:
-        return f"{top}\n{bottom}"
-    return top or bottom
+    mid = f"{top}\n{bottom}" if top and bottom else (top or bottom)
+    if brief_s and mid:
+        return f"{brief_s}\n---\n{mid}"
+    if brief_s:
+        return brief_s
+    return mid
 
 
 def _merge_step_rows(

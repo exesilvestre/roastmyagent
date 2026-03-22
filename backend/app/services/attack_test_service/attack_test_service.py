@@ -7,7 +7,9 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.agents.judge.graph import run_judge_graph
+from app.agents.attacker.context import build_attacker_context
+from app.agents.judge.graph import format_constraint_brief, run_judge_graph
+from app.agents.judge.schemas import ProbeConstraintSummary
 from app.core.security import decrypt_secret
 from app.models.session_agent_connection import SessionAgentConnection
 from app.models.session_attack_prompt import SessionAttackPrompt
@@ -27,6 +29,9 @@ from app.services.agent_connection_service.constants import (
 from app.services.agent_connection_service.utils import (
     build_http_payload_with_prompt,
     execute_http_with_settings,
+)
+from app.services.evaluation_session_service.evaluation_session_service import (
+    EvaluationSessionService,
 )
 
 
@@ -92,13 +97,19 @@ class AttackTestService:
         try:
             post_body = build_http_payload_with_prompt(settings, prompt_text)
         except ValueError as e:
-            return {"ok": False, "status_code": None, "detail": str(e), "response_preview": None}
+            return {
+                "ok": False,
+                "status_code": None,
+                "detail": str(e),
+                "response_preview": None,
+            }
 
         result = await execute_http_with_settings(
             settings,
             secret,
             post_body=post_body,
             include_response_preview=True,
+            connection_kind=row.connection_kind,
         )
         return {
             "ok": bool(result.get("ok")),
@@ -107,27 +118,43 @@ class AttackTestService:
             "response_preview": result.get("response_preview"),
         }
 
+    @staticmethod
+    def _constraint_summary_display(judge: dict[str, Any]) -> str | None:
+        raw = judge.get("judge_constraint_summary")
+        if not isinstance(raw, dict) or not raw:
+            return None
+        try:
+            return format_constraint_brief(ProbeConstraintSummary(**raw))
+        except Exception:
+            return None
+
     async def _judge_step(
         self,
         llm: BaseChatModel,
         p: SessionAttackPrompt,
+        *,
+        context_text: str,
         response_preview: str | None,
     ) -> dict[str, Any]:
-        preview = response_preview or ""
+        agent_text = response_preview or ""
         try:
-            verdict = await run_judge_graph(
+            run = await run_judge_graph(
                 llm,
+                context_text=context_text,
                 category=p.category,
                 intent=p.intent,
                 prompt_text=p.prompt_text,
-                agent_response_preview=preview,
+                agent_response=agent_text,
             )
+            verdict = run.verdict
+            cs = run.constraint_summary.model_dump()
             return {
                 "judge_score": verdict.score,
                 "judge_verdict": verdict.verdict,
                 "judge_reasoning": verdict.reasoning,
                 "judge_failed": False,
                 "judge_error": None,
+                "judge_constraint_summary": cs,
             }
         except Exception as e:
             return {
@@ -136,6 +163,7 @@ class AttackTestService:
                 "judge_reasoning": None,
                 "judge_failed": True,
                 "judge_error": str(e) or "judge failed",
+                "judge_constraint_summary": None,
             }
 
     def _merge_http_and_judge(
@@ -155,6 +183,12 @@ class AttackTestService:
             **judge,
         }
 
+    async def _session_context_text(self, session_id: UUID) -> str:
+        row = await EvaluationSessionService(self._db).get_session(session_id)
+        if row is None:
+            return "(session not found)"
+        return build_attacker_context(row)
+
     async def run(
         self,
         session_id: UUID,
@@ -164,11 +198,17 @@ class AttackTestService:
     ) -> list[dict[str, Any]]:
         prompts = await self._load_prompts_ordered(session_id, prompt_ids)
         conn, secret = await self._require_http_connection(session_id)
+        context_text = await self._session_context_text(session_id)
 
         steps: list[dict[str, Any]] = []
         for i, p in enumerate(prompts):
             http = await self._http_post_prompt(conn, p.prompt_text, secret)
-            judge = await self._judge_step(llm, p, http.get("response_preview") if isinstance(http.get("response_preview"), str) else None)
+            judge = await self._judge_step(
+                llm,
+                p,
+                context_text=context_text,
+                response_preview=http.get("response_preview") if isinstance(http.get("response_preview"), str) else None,
+            )
             steps.append(self._merge_http_and_judge(p, http, judge))
             if i < len(prompts) - 1 and delay_seconds > 0:
                 await asyncio.sleep(float(delay_seconds))
@@ -194,6 +234,8 @@ class AttackTestService:
         except ValueError as e:
             yield ErrorEvent(message=str(e)).model_dump(mode="json", by_alias=True)
             return
+
+        context_text = await self._session_context_text(session_id)
 
         n = len(prompts)
         yield RunStartedEvent(total_steps=n).model_dump(mode="json", by_alias=True)
@@ -227,7 +269,12 @@ class AttackTestService:
 
             yield JudgeStartedEvent(index=i).model_dump(mode="json", by_alias=True)
 
-            judge = await self._judge_step(llm, p, preview)
+            judge = await self._judge_step(
+                llm,
+                p,
+                context_text=context_text,
+                response_preview=preview,
+            )
             yield JudgeFinishedEvent(
                 index=i,
                 score=judge.get("judge_score"),
@@ -235,6 +282,7 @@ class AttackTestService:
                 reasoning=judge.get("judge_reasoning"),
                 failed=bool(judge.get("judge_failed")),
                 error=judge.get("judge_error"),
+                constraint_summary=self._constraint_summary_display(judge),
             ).model_dump(mode="json", by_alias=True)
 
             if i < n - 1 and delay_seconds > 0:
@@ -276,14 +324,23 @@ class AttackTestService:
                 ).model_dump(mode="json", by_alias=True),
             )
             out.append(JudgeStartedEvent(index=i).model_dump(mode="json", by_alias=True))
+            jg = {
+                "judge_score": s.get("judge_score"),
+                "judge_verdict": s.get("judge_verdict"),
+                "judge_reasoning": s.get("judge_reasoning"),
+                "judge_failed": s.get("judge_failed"),
+                "judge_error": s.get("judge_error"),
+                "judge_constraint_summary": s.get("judge_constraint_summary"),
+            }
             out.append(
                 JudgeFinishedEvent(
                     index=i,
-                    score=s.get("judge_score"),
-                    verdict=s.get("judge_verdict"),
-                    reasoning=s.get("judge_reasoning"),
-                    failed=bool(s.get("judge_failed")),
-                    error=s.get("judge_error"),
+                    score=jg.get("judge_score"),
+                    verdict=jg.get("judge_verdict"),
+                    reasoning=jg.get("judge_reasoning"),
+                    failed=bool(jg.get("judge_failed")),
+                    error=jg.get("judge_error"),
+                    constraint_summary=AttackTestService._constraint_summary_display(jg),
                 ).model_dump(mode="json", by_alias=True),
             )
         out.append(

@@ -105,10 +105,10 @@ export function TestRunStepCanvas({ step, live }: TestRunStepCanvasProps) {
                   type="button"
                   className="testRun_previewHit appScroll"
                   onClick={() =>
-                    setTextModal({ title: "Agent response", body: step.agent!.responsePreview! + step.agent!.detail! })
+                    setTextModal({ title: "Agent response", body: step.agent!.responsePreview! })
                   }
                 >
-                  <pre className="testRun_previewInner">{step.agent.responsePreview} +"..."</pre>
+                  <pre className="testRun_previewInner">{step.agent.responsePreview}</pre>
                   <span className="testRun_previewHint">Click to expand</span>
                 </button>
               ) : null}
@@ -147,6 +147,21 @@ export function TestRunStepCanvas({ step, live }: TestRunStepCanvasProps) {
                       </span>
                     ) : null}
                   </div>
+                  {step.judge.constraintSummary ? (
+                    <button
+                      type="button"
+                      className="testRun_reasoningHit appScroll"
+                      onClick={() =>
+                        setTextModal({
+                          title: "Constraint brief",
+                          body: step.judge!.constraintSummary!,
+                        })
+                      }
+                    >
+                      <p className="testRun_reasoningInner">{step.judge.constraintSummary}</p>
+                      <span className="testRun_previewHint">Click to expand</span>
+                    </button>
+                  ) : null}
                   {step.judge.reasoning ? (
                     <button
                       type="button"
