@@ -10,15 +10,17 @@ Open-source, local-first tool to **stress-test AI agents** with adversarial-styl
 
 ## LLM keys and Fernet
 
-The backend stores LLM API keys in PostgreSQL **encrypted at rest** using **Fernet** (symmetric AES, from the `cryptography` library). Each deployment uses a secret **`FERNET_KEY`** you generate once; without it, the API will not persist or decrypt provider keys.
+The backend stores LLM API keys in PostgreSQL **encrypted at rest** using **Fernet** (symmetric AES, from the `cryptography` library). Each deployment needs a **`FERNET_KEY`**; without it, the API will not persist or decrypt provider keys.
 
-Generate a key:
+**If you use the recommended [`roastmyagent up`](#quick-start-recommended) flow**, the script can create `backend/.env` and generate or write **`FERNET_KEY`** for you (Python with `cryptography`, or Docker, is used only to generate the key when needed).
+
+To set the key yourself, generate one and put it in `backend/.env` as `FERNET_KEY`:
 
 ```bash
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Put the value in `backend/.env` as `FERNET_KEY`. Treat it like a master password: back it up if you care about recovering stored keys after a restore.
+Treat it like a master password: back it up if you care about recovering stored keys after a restore.
 
 Session **agent connection** secrets (bearer token, basic auth password, etc.) use the same `FERNET_KEY`.
 
@@ -36,19 +38,31 @@ If the API runs in Docker and your HTTP agent listens on your machine’s `local
 | Backend    | FastAPI, SQLAlchemy, Alembic  |
 | Database   | PostgreSQL 16                 |
 
-## Quick start (Docker)
+## Quick start (recommended)
 
-From the repo root (Docker required):
+**Prerequisite:** [Docker](https://docs.docker.com/get-docker/) with Compose. Clone the repo, then from the **repository root**:
 
-- **Git Bash / macOS / Linux:** `./roastmyagent up` — creates `backend/.env` if needed, asks to generate **`FERNET_KEY`** and writes it for you, then runs `docker compose up --build`.
-- **Windows (cmd or PowerShell):** `roastmyagent.cmd up` (same behavior).
-- Non-interactive / CI: `./roastmyagent up --yes` (or set `CI=true`).
+| Platform | Command |
+| -------- | ------- |
+| macOS / Linux / Git Bash | `./roastmyagent up` |
+| Windows (cmd or PowerShell) | `roastmyagent.cmd up` |
 
-Or run `docker compose up --build` yourself after copying [`backend/.env.example`](backend/.env.example) → `backend/.env` and setting **`FERNET_KEY`** (see [LLM keys and Fernet](#llm-keys-and-fernet)). `scripts/docker-up.*` delegates to `roastmyagent` and does the same env setup.
+On first run this script: copies [`backend/.env.example`](backend/.env.example) to `backend/.env` if missing; if **`FERNET_KEY`** is empty, asks whether to generate one and **writes it into `backend/.env`**; then runs **`docker compose up --build`** (PostgreSQL, API, Next.js). Same behavior: `scripts/docker-up.sh` or `scripts/docker-up.ps1`.
 
-App: `http://localhost:3000` · API: `http://localhost:8000` · OpenAPI: `/docs`
+- **Non-interactive / CI:** `./roastmyagent up --yes` or `CI=true` (generates and writes the key without prompting when `FERNET_KEY` is empty).
+- On first build, expect several minutes while images build.
 
-Migrations run automatically when the API container starts. For production-style deploys you may prefer running Alembic separately instead of on every boot.
+**URLs:** app `http://localhost:3000` · API `http://localhost:8000` · OpenAPI `/docs`
+
+The API container runs Alembic migrations on startup. For production-style deploys you may prefer running migrations outside the container instead of on every boot.
+
+### Alternative: Docker Compose only
+
+If you prefer not to use the script, copy [`backend/.env.example`](backend/.env.example) → `backend/.env`, set **`FERNET_KEY`** (see [LLM keys and Fernet](#llm-keys-and-fernet)), then:
+
+```bash
+docker compose up --build
+```
 
 ### Environment files
 
@@ -63,7 +77,7 @@ Migrations run automatically when the API container starts. For production-style
 
 ### Option A: Docker (full stack)
 
-See **Quick start (Docker)** above (`./roastmyagent up` or `roastmyagent.cmd up`), or `scripts/docker-up.ps1` / `scripts/docker-up.sh` (same as `roastmyagent`).
+Use **[Quick start (recommended)](#quick-start-recommended)** (`./roastmyagent up` or `roastmyagent.cmd up`). The manual Compose-only flow is documented there as an alternative.
 
 ### Option B: Dev without Docker for the API
 
