@@ -23,7 +23,6 @@ from app.schemas.attack_test_stream import (
 from app.services.agent_connection_service.constants import (
     CONNECTION_KIND_HTTP_LOCAL,
     CONNECTION_KIND_HTTP_REMOTE_BASIC,
-    CONNECTION_KIND_MCP,
 )
 from app.services.agent_connection_service.utils import (
     build_http_payload_with_prompt,
@@ -66,11 +65,6 @@ class AttackTestService:
         conn = conn_result.scalar_one_or_none()
         if conn is None:
             raise ValueError("no agent connection configured for this session")
-
-        if conn.connection_kind == CONNECTION_KIND_MCP:
-            raise ValueError(
-                "attack test runs are only supported for HTTP agent connections in this version",
-            )
 
         if conn.connection_kind not in (
             CONNECTION_KIND_HTTP_LOCAL,

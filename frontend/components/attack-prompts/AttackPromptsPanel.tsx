@@ -1,9 +1,15 @@
 "use client";
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api/client";
-import type { AttackPromptItemApi, AttackPromptsListApi, AttackTestRunApi } from "@/lib/api/types";
+import type { AttackPromptItemApi, AttackPromptsListApi } from "@/lib/api/types";
 import { appToast } from "@/lib/app-toast";
+import {
+  persistTestRunLaunchToSessionStorage,
+  useTestRunLaunchStore,
+} from "@/lib/stores/test-run-launch-store";
 import { AddPromptModal } from "./AddPromptModal";
 import { EditPromptModal } from "./EditPromptModal";
 import "./styles.css";
@@ -15,10 +21,11 @@ type AttackPromptsPanelProps = {
 const DELAY_OPTIONS = [5, 10, 20] as const;
 
 export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
+  const router = useRouter();
+  const setTestRunPending = useTestRunLaunchStore((s) => s.setPending);
   const [rows, setRows] = useState<AttackPromptItemApi[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [delaySeconds, setDelaySeconds] = useState<(typeof DELAY_OPTIONS)[number]>(10);
-  const [testing, setTesting] = useState(false);
   const [loadingList, setLoadingList] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -192,7 +199,7 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
     setActionError(null);
   };
 
-  const handleStartTesting = async () => {
+  const handleStartTesting = () => {
     if (dirty) {
       appToast.error("Save your prompts before running the test.");
       return;
@@ -203,32 +210,20 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
       return;
     }
     setActionError(null);
-    setTesting(true);
-    try {
-      const data = await apiFetch<AttackTestRunApi>(
-        `/api/v1/sessions/${sessionId}/attack-prompts/run`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            promptIds: chosen.map((r) => r.id),
-            delaySeconds,
-          }),
-        },
-      );
-      const okCount = data.steps.filter((s) => s.ok).length;
-      const failCount = data.steps.length - okCount;
-      if (failCount === 0) {
-        appToast.success(`Test finished: ${okCount} request(s) OK.`);
-      } else {
-        appToast.error(`Test finished: ${okCount} OK, ${failCount} failed.`);
-      }
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Test run failed";
-      setActionError(msg);
-      appToast.error(msg);
-    } finally {
-      setTesting(false);
-    }
+    const payload = {
+      sessionId,
+      promptIds: chosen.map((r) => r.id),
+      delaySeconds,
+      plannedPrompts: chosen.map((r) => ({
+        id: r.id,
+        category: r.category,
+        intent: r.intent,
+        promptText: r.promptText,
+      })),
+    };
+    setTestRunPending(payload);
+    persistTestRunLaunchToSessionStorage(payload);
+    router.push(`/sessions/${sessionId}/run`);
   };
 
   const handleAddFromModal = (row: {
@@ -244,7 +239,7 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
     setActionError(null);
   };
 
-  const busy = generating || saving || testing;
+  const busy = generating || saving;
   const canRunTest =
     !loadingList &&
     rows.length > 0 &&
@@ -279,36 +274,36 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
         <div>
           <h2 className="attackPrompts_title">Adversarial prompts</h2>
           <p className="attackPrompts_hint">
-           Save before running a test. Testing sends each selected prompt to your HTTP agent
-            (POST body) with the chosen delay between requests. MCP targets are not supported for
-            runs yet.
+           Save before running a test. Start testing opens a live view: each prompt is sent to
+            your HTTP agent (POST body), then an LLM judge scores the reply. Delay applies between
+            requests.
           </p>
         </div>
         <div className="attackPrompts_toolbar">
-          <button
-            type="button"
-            className="attackPrompts_btn attackPrompts_btnSecondary"
-            disabled={busy || loadingList}
-            onClick={() => setAddOpen(true)}
+          <div className="attackPrompts_toolbarPrimary">
+            <button
+              type="button"
+              className="attackPrompts_btn attackPrompts_generate"
+              disabled={busy || loadingList}
+              onClick={() => void handleGenerate().catch(() => {})}
+            >
+              {generating ? "Generating…" : "Generate"}
+            </button>
+            <button
+              type="button"
+              className="attackPrompts_btn attackPrompts_save"
+              disabled={busy || loadingList || !dirty}
+              onClick={() => void handleSave().catch(() => {})}
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </div>
+          <Link
+            href={`/sessions/${sessionId}/tests`}
+            className="attackPrompts_historyTextLink"
           >
-            Add row
-          </button>
-          <button
-            type="button"
-            className="attackPrompts_btn attackPrompts_generate"
-            disabled={busy || loadingList}
-            onClick={() => void handleGenerate().catch(() => {})}
-          >
-            {generating ? "Generating…" : "Generate"}
-          </button>
-          <button
-            type="button"
-            className="attackPrompts_btn attackPrompts_save"
-            disabled={busy || loadingList || !dirty}
-            onClick={() => void handleSave().catch(() => {})}
-          >
-            {saving ? "Saving…" : "Save"}
-          </button>
+            See test history &gt;
+          </Link>
         </div>
       </div>
 
@@ -340,21 +335,31 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
             ))}
           </div>
         </div>
-        <button
-          type="button"
-          className="attackPrompts_btn attackPrompts_startTest"
-          disabled={!canRunTest}
-          title={
-            dirty
-              ? "Save prompts before running the test"
-              : selectedIds.size === 0
-                ? "Select at least one prompt"
-                : undefined
-          }
-          onClick={() => void handleStartTesting().catch(() => {})}
-        >
-          {testing ? "Testing…" : "Start testing"}
-        </button>
+        <div className="attackPrompts_testingBar_right">
+          <button
+            type="button"
+            className="attackPrompts_btn attackPrompts_btnSecondary"
+            disabled={busy || loadingList}
+            onClick={() => setAddOpen(true)}
+          >
+            Add row
+          </button>
+          <button
+            type="button"
+            className="attackPrompts_btn attackPrompts_startTest"
+            disabled={!canRunTest}
+            title={
+              dirty
+                ? "Save prompts before running the test"
+                : selectedIds.size === 0
+                  ? "Select at least one prompt"
+                  : undefined
+            }
+            onClick={() => handleStartTesting()}
+          >
+            Start testing
+          </button>
+        </div>
       </div>
 
       {loadError ? <p className="attackPrompts_error">{loadError}</p> : null}

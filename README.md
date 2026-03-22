@@ -18,13 +18,15 @@ Generate a key:
 python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 ```
 
-Put the value in `.env` as `FERNET_KEY`. Treat it like a master password: back it up if you care about recovering stored keys after a restore.
+Put the value in `backend/.env` as `FERNET_KEY`. Treat it like a master password: back it up if you care about recovering stored keys after a restore.
 
-Session **agent connection** secrets (MCP token, basic auth password) use the same `FERNET_KEY`.
+Session **agent connection** secrets (bearer token, basic auth password, etc.) use the same `FERNET_KEY`.
+
+Agent connections are **HTTP-only** for now (your agent’s URL, method, and body template). Other transports (for example WebSocket) may be added later.
 
 ### Docker and reaching an agent on your host
 
-If the API runs in Docker and your MCP or HTTP agent listens on your machine’s `localhost`, use `http://host.docker.internal:<port>` in URLs (not `http://localhost`). The Compose file maps `host.docker.internal` for Linux; Docker Desktop on Windows/macOS provides it by default.
+If the API runs in Docker and your HTTP agent listens on your machine’s `localhost`, use `http://host.docker.internal:<port>` in URLs (not `http://localhost`). The Compose file maps `host.docker.internal` for Linux; Docker Desktop on Windows/macOS provides it by default.
 
 ## Stack
 
@@ -34,41 +36,43 @@ If the API runs in Docker and your MCP or HTTP agent listens on your machine’s
 | Backend    | FastAPI, SQLAlchemy, Alembic  |
 | Database   | PostgreSQL 16                 |
 
+## Quick start (Docker)
+
+From the repo root (Docker required):
+
+- **Git Bash / macOS / Linux:** `./roastmyagent up` — creates `backend/.env` if needed, asks to generate **`FERNET_KEY`** and writes it for you, then runs `docker compose up --build`.
+- **Windows (cmd or PowerShell):** `roastmyagent.cmd up` (same behavior).
+- Non-interactive / CI: `./roastmyagent up --yes` (or set `CI=true`).
+
+Or run `docker compose up --build` yourself after copying [`backend/.env.example`](backend/.env.example) → `backend/.env` and setting **`FERNET_KEY`** (see [LLM keys and Fernet](#llm-keys-and-fernet)). `scripts/docker-up.*` delegates to `roastmyagent` and does the same env setup.
+
+App: `http://localhost:3000` · API: `http://localhost:8000` · OpenAPI: `/docs`
+
+Migrations run automatically when the API container starts. For production-style deploys you may prefer running Alembic separately instead of on every boot.
+
+### Environment files
+
+- **Backend:** one template, [`backend/.env.example`](backend/.env.example) → `backend/.env` (used by Compose and by local `uvicorn`). `DATABASE_URL` in Compose is overridden for Docker; local dev uses `localhost` in that file.
+- **Frontend (dev outside Docker):** [`frontend/.env.example`](frontend/.env.example) → `frontend/.env.local` (`NEXT_PUBLIC_API_URL`, default `http://localhost:8000`). The Dockerized frontend bakes this at build time.
+
 ## Local setup
 
 ### Prerequisites
 
 - Docker & Docker Compose **or** Node 20+, Python 3.12+, and a local PostgreSQL instance.
 
-### Option A: Docker (API + Postgres)
+### Option A: Docker (full stack)
 
-From the repo root:
-
-1. Copy `.env.example` → `.env` and set **`FERNET_KEY`** (see above).
-2. Start services and apply migrations:
-
-   ```bash
-   docker compose up --build -d
-   docker compose run --rm api alembic upgrade head
-   ```
-
-3. API: `http://localhost:8000` · OpenAPI: `/docs`
-
-4. Frontend (separate terminal):
-
-   ```bash
-   cd frontend
-   cp .env.example .env.local
-   npm install
-   npm run dev
-   ```
-
-   App: `http://localhost:3000` (uses `NEXT_PUBLIC_API_URL`, default `http://localhost:8000`).
+See **Quick start (Docker)** above (`./roastmyagent up` or `roastmyagent.cmd up`), or `scripts/docker-up.ps1` / `scripts/docker-up.sh` (same as `roastmyagent`).
 
 ### Option B: Dev without Docker for the API
 
-1. Run PostgreSQL (e.g. same URL as in `.env.example` or adjust `DATABASE_URL`).
+1. Run PostgreSQL (e.g. same URL as in `backend/.env.example` or adjust `DATABASE_URL`).
 2. In `backend/`: create a venv, `pip install -r requirements.txt`, copy `.env.example` → `.env`, set **`FERNET_KEY`** and **`DATABASE_URL`**, then `alembic upgrade head` and `uvicorn app.main:app --reload --host 0.0.0.0 --port 8000`.
-3. In `frontend/`: same as step 4 above.
+3. In `frontend/`: `cp .env.example .env.local`, `npm install`, `npm run dev` — app at `http://localhost:3000`.
 
 More API detail: [backend/README.md](backend/README.md).
+
+## License
+
+[MIT](LICENSE)

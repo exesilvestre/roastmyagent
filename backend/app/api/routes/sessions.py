@@ -21,6 +21,7 @@ from app.schemas.attack_prompts import (
 from app.schemas.attack_test_runs import AttackTestRunDetailOut, AttackTestRunListItem
 from app.schemas.attack_test_stream import RunSavedEvent
 from app.services.attack_prompt_service.attack_prompt_service import AttackPromptService
+from app.services.attack_test_run_export import attack_test_run_to_xlsx_bytes, prompt_text_map_from_rows
 from app.services.attack_test_run_history_service import AttackTestRunHistoryService
 from app.services.attack_test_service.attack_test_service import AttackTestService
 from app.schemas.session import SessionCreate, SessionOut, SessionUpdate
@@ -311,6 +312,33 @@ async def get_attack_test_run(
         ok_count=row.ok_count,
         fail_count=row.fail_count,
         events=row.events,
+    )
+
+
+@router.get(
+    "/{session_id}/attack-test-runs/{run_id}/export",
+)
+async def export_attack_test_run_excel(
+    session_id: UUID,
+    run_id: UUID,
+    db: DbSession,
+) -> Response:
+    svc = EvaluationSessionService(db)
+    if await svc.get_session(session_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="session not found")
+    row = await AttackTestRunHistoryService(db).get_for_session(session_id, run_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="test run not found")
+    prompts = await AttackPromptService(db).list_for_session(session_id)
+    prompt_map = prompt_text_map_from_rows(prompts or [])
+    body = attack_test_run_to_xlsx_bytes(row, prompt_map)
+    filename = f"attack-test-run-{run_id}.xlsx"
+    return Response(
+        content=body,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+        },
     )
 
 

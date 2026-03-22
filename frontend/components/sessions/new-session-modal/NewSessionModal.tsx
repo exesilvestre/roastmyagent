@@ -10,15 +10,8 @@ import type { NewSessionModalProps } from "./types";
 import "./styles.css";
 
 const CONNECTION_OPTIONS = [
-  { id: "MCP", label: "MCP" },
   { id: "HTTP_LOCAL", label: "HTTP local" },
   { id: "HTTP_REMOTE_BASIC", label: "HTTP remote" },
-];
-
-const MCP_TRANSPORT_OPTIONS = [
-  { id: "http", label: "http (streamable)" },
-  { id: "sse", label: "sse" },
-  { id: "stdio", label: "stdio" },
 ];
 
 const HTTP_METHOD_OPTIONS = [
@@ -68,11 +61,6 @@ function urlTargetsSameApiAsApp(urlStr: string): boolean {
 
 function buildAgentConnection(
   mode: AgentConnectionKind,
-  mcpTransport: string,
-  mcpUrl: string,
-  mcpCommand: string,
-  mcpArgsJson: string,
-  mcpSecret: string,
   httpUrl: string,
   httpMethod: string,
   bodyKind: string,
@@ -82,29 +70,6 @@ function buildAgentConnection(
   basicUser: string,
   httpSecret: string,
 ): CreateSessionAgentConnection {
-  if (mode === "MCP") {
-    const t = mcpTransport.toLowerCase();
-    const settings: Record<string, unknown> = { transport: t };
-    if (t === "stdio") {
-      settings.command = mcpCommand.trim();
-      try {
-        settings.args = JSON.parse(mcpArgsJson.trim() || "[]") as unknown;
-      } catch {
-        throw new Error("MCP args must be a valid JSON array.");
-      }
-      if (!Array.isArray(settings.args)) {
-        throw new Error("MCP args must be a JSON array.");
-      }
-    } else {
-      settings.url = mcpUrl.trim();
-    }
-    return {
-      connectionKind: "MCP",
-      settings,
-      ...(mcpSecret.trim() ? { secret: mcpSecret.trim() } : {}),
-    };
-  }
-
   const bodyContent = bodyKind === "json" ? httpBodyJson : httpBodyText;
 
   if (mode === "HTTP_LOCAL") {
@@ -153,9 +118,6 @@ function formatTestRequestPreview(
 ): string {
   if (!payload) {
     return "";
-  }
-  if (payload.connectionKind === "MCP") {
-    return "MCP: the API will connect to your server and list tools (no HTTP request body).";
   }
   const s = payload.settings as Record<string, unknown>;
   const url = String(s.url || "").trim() || "(no URL)";
@@ -213,11 +175,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
   const [agentDescription, setAgentDescription] = useState("");
 
   const [mode, setMode] = useState<AgentConnectionKind>("HTTP_LOCAL");
-  const [mcpTransport, setMcpTransport] = useState("http");
-  const [mcpUrl, setMcpUrl] = useState("");
-  const [mcpCommand, setMcpCommand] = useState("python");
-  const [mcpArgsJson, setMcpArgsJson] = useState("[]");
-  const [mcpSecret, setMcpSecret] = useState("");
 
   const [httpUrl, setHttpUrl] = useState("");
   const [httpMethod, setHttpMethod] = useState("POST");
@@ -241,11 +198,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
     setTitle("");
     setAgentDescription("");
     setMode("HTTP_LOCAL");
-    setMcpTransport("http");
-    setMcpUrl("");
-    setMcpCommand("python");
-    setMcpArgsJson("[]");
-    setMcpSecret("");
     setHttpUrl("");
     setHttpMethod("POST");
     setBodyKind("json");
@@ -264,11 +216,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
     try {
       return buildAgentConnection(
         mode,
-        mcpTransport,
-        mcpUrl,
-        mcpCommand,
-        mcpArgsJson,
-        mcpSecret,
         httpUrl,
         httpMethod,
         bodyKind,
@@ -283,11 +230,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
     }
   }, [
     mode,
-    mcpTransport,
-    mcpUrl,
-    mcpCommand,
-    mcpArgsJson,
-    mcpSecret,
     httpUrl,
     httpMethod,
     bodyKind,
@@ -326,7 +268,7 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
   const goNextConnection = () => {
     setLocalError(null);
     if (!connectionPayload) {
-      setLocalError("Fix connection fields (e.g. MCP URL or HTTP URL).");
+      setLocalError("Fix connection fields (e.g. HTTP URL).");
       return;
     }
     setStep(2);
@@ -339,11 +281,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
     try {
       const built = buildAgentConnection(
         mode,
-        mcpTransport,
-        mcpUrl,
-        mcpCommand,
-        mcpArgsJson,
-        mcpSecret,
         httpUrl,
         httpMethod,
         bodyKind,
@@ -395,11 +332,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
     try {
       ac = buildAgentConnection(
         mode,
-        mcpTransport,
-        mcpUrl,
-        mcpCommand,
-        mcpArgsJson,
-        mcpSecret,
         httpUrl,
         httpMethod,
         bodyKind,
@@ -505,7 +437,7 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
                 className="newSessionModal_textarea newSessionModal_textarea_step1"
                 value={agentDescription}
                 onChange={(ev) => setAgentDescription(ev.target.value)}
-                placeholder="Role, allowed tools, data it sees, boundaries…"
+                placeholder="System Prompt, Role, allowed tools, data it sees, boundaries…"
               />
             </label>
             {localError ? (
@@ -528,6 +460,10 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
               Set URL, HTTP method, and (for remote) whether the endpoint uses auth. Define the JSON
               or text body for the test call — step 3 shows exactly what will be sent.
             </p>
+            <p className="newSessionModal_hint">
+              Only HTTP is supported for now; other transports (for example WebSocket) may be added
+              later.
+            </p>
 
             <div className="newSessionModal_section">
               <label className="newSessionModal_label">
@@ -540,179 +476,118 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
                 />
               </label>
 
-              {mode === "MCP" ? (
+              {mode === "HTTP_LOCAL" ? (
+                <p className="newSessionModal_dockerHint">
+                  API in Docker → agent on your machine: use{" "}
+                  <code className="newSessionModal_code">host.docker.internal</code>, not localhost.
+                </p>
+              ) : null}
+              <label className="newSessionModal_label">
+                URL
+                <input
+                  className="newSessionModal_input"
+                  value={httpUrl}
+                  onChange={(ev) => setHttpUrl(ev.target.value)}
+                  placeholder="https://example.com/v1/chat"
+                  autoComplete="off"
+                />
+              </label>
+              {httpUrlSameAsApi ? (
+                <p className="newSessionModal_urlConflict" role="alert">
+                  This URL uses the same host and port as this app&apos;s API. The test request hits
+                  the RoastMyAgent server (you&apos;ll see{" "}
+                  <code className="newSessionModal_code">POST /chat</code> → 404), not your agent.
+                  Use your agent&apos;s URL on a different port (for example{" "}
+                  <code className="newSessionModal_code">http://localhost:8080/chat</code>).
+                </p>
+              ) : null}
+              <label className="newSessionModal_label">
+                Method
+                <ProviderSelect
+                  ariaLabel="HTTP method"
+                  value={httpMethod}
+                  onChange={setHttpMethod}
+                  options={HTTP_METHOD_OPTIONS}
+                />
+              </label>
+              <label className="newSessionModal_label">
+                Authentication
+                <ProviderSelect
+                  ariaLabel="HTTP authentication"
+                  value={httpAuth}
+                  onChange={(id) => setHttpAuth(id as HttpAuth)}
+                  options={HTTP_AUTH_OPTIONS}
+                />
+              </label>
+              {httpAuth === "bearer" ? (
+                <label className="newSessionModal_label">
+                  Bearer token
+                  <input
+                    className="newSessionModal_input"
+                    value={httpSecret}
+                    onChange={(ev) => setHttpSecret(ev.target.value)}
+                    type="password"
+                    autoComplete="off"
+                    placeholder="Token"
+                  />
+                </label>
+              ) : null}
+              {httpAuth === "basic" ? (
                 <>
                   <label className="newSessionModal_label">
-                    Transport
-                    <ProviderSelect
-                      ariaLabel="MCP transport"
-                      value={mcpTransport}
-                      onChange={setMcpTransport}
-                      options={MCP_TRANSPORT_OPTIONS}
-                    />
-                  </label>
-                  {mcpTransport === "stdio" ? (
-                    <>
-                      <label className="newSessionModal_label">
-                        Command
-                        <input
-                          className="newSessionModal_input"
-                          value={mcpCommand}
-                          onChange={(ev) => setMcpCommand(ev.target.value)}
-                          autoComplete="off"
-                        />
-                      </label>
-                      <label className="newSessionModal_label">
-                        Args (JSON array)
-                        <textarea
-                          className="newSessionModal_textarea newSessionModal_textarea_short newSessionModal_textarea_code"
-                          value={mcpArgsJson}
-                          onChange={(ev) => setMcpArgsJson(ev.target.value)}
-                        />
-                      </label>
-                    </>
-                  ) : (
-                    <label className="newSessionModal_label">
-                      MCP URL
-                      <input
-                        className="newSessionModal_input"
-                        value={mcpUrl}
-                        onChange={(ev) => setMcpUrl(ev.target.value)}
-                        placeholder="http://host.docker.internal:3000/mcp"
-                        autoComplete="off"
-                      />
-                    </label>
-                  )}
-                  <label className="newSessionModal_label">
-                    API token (optional)
+                    Username
                     <input
                       className="newSessionModal_input"
-                      value={mcpSecret}
-                      onChange={(ev) => setMcpSecret(ev.target.value)}
+                      value={basicUser}
+                      onChange={(ev) => setBasicUser(ev.target.value)}
+                      autoComplete="off"
+                    />
+                  </label>
+                  <label className="newSessionModal_label">
+                    Password
+                    <input
+                      className="newSessionModal_input"
+                      value={httpSecret}
+                      onChange={(ev) => setHttpSecret(ev.target.value)}
                       type="password"
                       autoComplete="off"
                     />
                   </label>
                 </>
               ) : null}
-
-              {mode === "HTTP_LOCAL" || mode === "HTTP_REMOTE_BASIC" ? (
-                <>
-                  {mode === "HTTP_LOCAL" ? (
-                    <p className="newSessionModal_dockerHint">
-                      API in Docker → agent on your machine: use{" "}
-                      <code className="newSessionModal_code">host.docker.internal</code>, not
-                      localhost.
-                    </p>
-                  ) : null}
-                  <label className="newSessionModal_label">
-                    URL
-                    <input
-                      className="newSessionModal_input"
-                      value={httpUrl}
-                      onChange={(ev) => setHttpUrl(ev.target.value)}
-                      placeholder="https://example.com/v1/chat"
-                      autoComplete="off"
-                    />
-                  </label>
-                  {httpUrlSameAsApi ? (
-                    <p className="newSessionModal_urlConflict" role="alert">
-                      This URL uses the same host and port as this app&apos;s API. The test request
-                      hits the RoastMyAgent server (you&apos;ll see{" "}
-                      <code className="newSessionModal_code">POST /chat</code> → 404), not your
-                      agent. Use your agent&apos;s URL on a different port (for example{" "}
-                      <code className="newSessionModal_code">http://localhost:8080/chat</code>).
-                    </p>
-                  ) : null}
-                  <label className="newSessionModal_label">
-                    Method
-                    <ProviderSelect
-                      ariaLabel="HTTP method"
-                      value={httpMethod}
-                      onChange={setHttpMethod}
-                      options={HTTP_METHOD_OPTIONS}
-                    />
-                  </label>
-                  <label className="newSessionModal_label">
-                    Authentication
-                    <ProviderSelect
-                      ariaLabel="HTTP authentication"
-                      value={httpAuth}
-                      onChange={(id) => setHttpAuth(id as HttpAuth)}
-                      options={HTTP_AUTH_OPTIONS}
-                    />
-                  </label>
-                  {httpAuth === "bearer" ? (
-                    <label className="newSessionModal_label">
-                      Bearer token
-                      <input
-                        className="newSessionModal_input"
-                        value={httpSecret}
-                        onChange={(ev) => setHttpSecret(ev.target.value)}
-                        type="password"
-                        autoComplete="off"
-                        placeholder="Token"
-                      />
-                    </label>
-                  ) : null}
-                  {httpAuth === "basic" ? (
-                    <>
-                      <label className="newSessionModal_label">
-                        Username
-                        <input
-                          className="newSessionModal_input"
-                          value={basicUser}
-                          onChange={(ev) => setBasicUser(ev.target.value)}
-                          autoComplete="off"
-                        />
-                      </label>
-                      <label className="newSessionModal_label">
-                        Password
-                        <input
-                          className="newSessionModal_input"
-                          value={httpSecret}
-                          onChange={(ev) => setHttpSecret(ev.target.value)}
-                          type="password"
-                          autoComplete="off"
-                        />
-                      </label>
-                    </>
-                  ) : null}
-                  <label className="newSessionModal_label">
-                    POST body type
-                    <ProviderSelect
-                      ariaLabel="POST body type"
-                      value={bodyKind}
-                      onChange={setBodyKind}
-                      options={BODY_KIND_OPTIONS}
-                      disabled={httpMethod === "GET"}
-                    />
-                  </label>
-                  {httpMethod === "POST" && bodyKind === "json" ? (
-                    <label className="newSessionModal_label">
-                      JSON body (sent on test)
-                      <textarea
-                        className="newSessionModal_textarea newSessionModal_textarea_short newSessionModal_textarea_code"
-                        value={httpBodyJson}
-                        onChange={(ev) => setHttpBodyJson(ev.target.value)}
-                        placeholder={DEFAULT_JSON_BODY}
-                        spellCheck={false}
-                      />
-                    </label>
-                  ) : null}
-                  {httpMethod === "POST" && bodyKind === "text" ? (
-                    <label className="newSessionModal_label">
-                      Text body (sent on test)
-                      <input
-                        className="newSessionModal_input"
-                        value={httpBodyText}
-                        onChange={(ev) => setHttpBodyText(ev.target.value)}
-                        placeholder="hello"
-                        autoComplete="off"
-                      />
-                    </label>
-                  ) : null}
-                </>
+              <label className="newSessionModal_label">
+                POST body type
+                <ProviderSelect
+                  ariaLabel="POST body type"
+                  value={bodyKind}
+                  onChange={setBodyKind}
+                  options={BODY_KIND_OPTIONS}
+                  disabled={httpMethod === "GET"}
+                />
+              </label>
+              {httpMethod === "POST" && bodyKind === "json" ? (
+                <label className="newSessionModal_label">
+                  JSON body (sent on test)
+                  <textarea
+                    className="newSessionModal_textarea newSessionModal_textarea_short newSessionModal_textarea_code"
+                    value={httpBodyJson}
+                    onChange={(ev) => setHttpBodyJson(ev.target.value)}
+                    placeholder={DEFAULT_JSON_BODY}
+                    spellCheck={false}
+                  />
+                </label>
+              ) : null}
+              {httpMethod === "POST" && bodyKind === "text" ? (
+                <label className="newSessionModal_label">
+                  Text body (sent on test)
+                  <input
+                    className="newSessionModal_input"
+                    value={httpBodyText}
+                    onChange={(ev) => setHttpBodyText(ev.target.value)}
+                    placeholder="hello"
+                    autoComplete="off"
+                  />
+                </label>
               ) : null}
             </div>
 

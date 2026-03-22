@@ -70,7 +70,7 @@ class LlmProviderService:
     async def update_provider(self, provider_id: str, patch: dict[str, Any]) -> LlmProviderConfig | None:
         if provider_id not in PROVIDER_LABELS:
             return None
-        row = await self._ensure_provider_row(provider_id)
+        row = await self._get_provider(provider_id)
         if row is None:
             return None
         if "api_key" in patch:
@@ -92,7 +92,7 @@ class LlmProviderService:
     async def activate_provider(self, provider_id: str) -> bool:
         if provider_id not in PROVIDER_LABELS:
             return False
-        row = await self._ensure_provider_row(provider_id)
+        row = await self._get_provider(provider_id)
         if row is None or not self._is_ready(row):
             return False
         settings_row = await self._get_settings_row()

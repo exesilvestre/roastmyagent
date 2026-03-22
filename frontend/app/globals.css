@@ -3,6 +3,8 @@
 :root {
   --app-header-height: 3rem;
   --sidebar-width-expanded: 12.5rem;
+  /* Narrow column for saved test runs (session test routes) — frees space for main panel. */
+  --sidebar-width-test-history: 10.5rem;
   --radius-panel: 0.75rem;
   --radius-control: 0.5rem;
   --background: #09090b;
@@ -16,6 +18,12 @@
   --surface-elevated: #1c1c1f;
   --surface-hover: #27272a;
   --surface-active: #27272a;
+  --accent: #a78bfa;
+  --accent-muted: rgba(167, 139, 250, 0.35);
+  --scrollbar-size: 6px;
+  --scrollbar-track: rgba(255, 255, 255, 0.04);
+  --scrollbar-thumb: rgba(167, 139, 250, 0.32);
+  --scrollbar-thumb-hover: rgba(167, 139, 250, 0.5);
 }
 
 @theme inline {
@@ -29,4 +37,42 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Test run/history shell locks to viewport; scroll happens inside sidebar + main, not on the page */
+html:has(.appShell_viewportLocked),
+body:has(.appShell_viewportLocked) {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Themed scrollbars (Firefox + WebKit) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* Optional: opt-in class for nested scroll areas */
+.appScroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
 }
