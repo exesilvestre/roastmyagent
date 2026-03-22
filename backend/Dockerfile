@@ -12,8 +12,9 @@ COPY app ./app
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY docker-entrypoint.sh ./
-RUN chmod +x docker-entrypoint.sh
+# Normalize CRLF from Windows checkouts; execve on ./script fails with "no such file" when shebang is /bin/sh\r
+RUN sed -i 's/\r$//' docker-entrypoint.sh && chmod +x docker-entrypoint.sh
 
 EXPOSE 8000
 
-ENTRYPOINT ["./docker-entrypoint.sh"]
+ENTRYPOINT ["/bin/sh", "/app/docker-entrypoint.sh"]
