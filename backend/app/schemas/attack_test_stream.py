@@ -52,6 +52,7 @@ class JudgeFinishedEvent(BaseModel):
     reasoning: str | None = None
     failed: bool = False
     error: str | None = None
+    constraint_summary: str | None = None
 
 
 class RunFinishedEvent(BaseModel):

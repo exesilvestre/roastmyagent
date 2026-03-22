@@ -6,6 +6,7 @@ import { apiFetch, getApiBaseUrl } from "@/lib/api/client";
 import type { AgentConnectionKind } from "@/lib/types/agent-connection";
 import { useSessionStore, type CreateSessionAgentConnection } from "@/lib/stores/session-store";
 import { appToast } from "@/lib/app-toast";
+import { normalizeAgentHttpUrl } from "@/lib/normalizeAgentHttpUrl";
 import type { NewSessionModalProps } from "./types";
 import "./styles.css";
 
@@ -15,7 +16,6 @@ const CONNECTION_OPTIONS = [
 ];
 
 const HTTP_METHOD_OPTIONS = [
-  { id: "GET", label: "GET" },
   { id: "POST", label: "POST" },
 ];
 
@@ -49,7 +49,7 @@ function urlTargetsSameApiAsApp(urlStr: string): boolean {
     return false;
   }
   try {
-    const u = new URL(t);
+    const u = new URL(normalizeAgentHttpUrl(t));
     const api = new URL(getApiBaseUrl());
     const pu = u.port || (u.protocol === "https:" ? "443" : "80");
     const pa = api.port || (api.protocol === "https:" ? "443" : "80");
@@ -74,7 +74,7 @@ function buildAgentConnection(
 
   if (mode === "HTTP_LOCAL") {
     const settings: Record<string, unknown> = {
-      url: httpUrl.trim(),
+      url: normalizeAgentHttpUrl(httpUrl),
       httpMethod,
       bodyKind,
       bodyContent,
@@ -93,7 +93,7 @@ function buildAgentConnection(
   }
 
   const settings: Record<string, unknown> = {
-    url: httpUrl.trim(),
+    url: normalizeAgentHttpUrl(httpUrl),
     httpMethod,
     bodyKind,
     bodyContent,
@@ -478,17 +478,31 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
 
               {mode === "HTTP_LOCAL" ? (
                 <p className="newSessionModal_dockerHint">
-                  API in Docker → agent on your machine: use{" "}
-                  <code className="newSessionModal_code">host.docker.internal</code>, not localhost.
+                  HTTP local: when the API runs in Docker,{" "}
+                  <code className="newSessionModal_code">localhost</code> /{" "}
+                  <code className="newSessionModal_code">127.0.0.1</code> /{" "}
+                  <code className="newSessionModal_code">::1</code> are rewritten to{" "}
+                  <code className="newSessionModal_code">host.docker.internal</code> on each request
+                  so the container can reach your machine. Example:{" "}
+                  <code className="newSessionModal_code">http://localhost:8001/…</code>. If the API
+                  runs on your host (not in Docker), the URL is left as you typed.
                 </p>
-              ) : null}
+              ) : (
+                <p className="newSessionModal_dockerHint">
+                  HTTP remote: the URL is used exactly as entered (no loopback rewrite).
+                </p>
+              )}
               <label className="newSessionModal_label">
                 URL
                 <input
                   className="newSessionModal_input"
                   value={httpUrl}
                   onChange={(ev) => setHttpUrl(ev.target.value)}
-                  placeholder="https://example.com/v1/chat"
+                  placeholder={
+                    mode === "HTTP_LOCAL"
+                      ? "http://localhost:8001/v1/chat"
+                      : "https://api.example.com/v1/chat"
+                  }
                   autoComplete="off"
                 />
               </label>

@@ -21,8 +21,15 @@ class AgentConnectionService:
         cls,
         settings: dict[str, Any],
         secret: str | None,
+        *,
+        connection_kind: str,
     ) -> dict[str, Any]:
-        return await execute_http_with_settings(settings, secret, post_body=None)
+        return await execute_http_with_settings(
+            settings,
+            secret,
+            post_body=None,
+            connection_kind=connection_kind,
+        )
 
     @classmethod
     async def verify(
@@ -32,7 +39,7 @@ class AgentConnectionService:
         secret: str | None,
     ) -> dict[str, Any]:
         if connection_kind in (CONNECTION_KIND_HTTP_LOCAL, CONNECTION_KIND_HTTP_REMOTE_BASIC):
-            return await cls.verify_http(settings, secret)
+            return await cls.verify_http(settings, secret, connection_kind=connection_kind)
         return {"ok": False, "detail": "unknown connection kind", "preview": None}
 
     @staticmethod

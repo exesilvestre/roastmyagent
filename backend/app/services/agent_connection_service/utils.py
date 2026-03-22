@@ -1,5 +1,7 @@
 import json
+import os
 from typing import Any, Tuple
+from urllib.parse import urlparse, urlunparse
 
 import httpx
 
@@ -7,6 +9,7 @@ from app.services.agent_connection_service.constants import (
     AUTH_TYPE_BASIC,
     AUTH_TYPE_BEARER,
     AUTH_TYPE_NONE,
+    CONNECTION_KIND_HTTP_LOCAL,
     DEFAULT_HTTP_METHOD,
     DEFAULT_TIMEOUT,
     HTTP_METHOD_POST,
@@ -106,13 +109,45 @@ def get_http_timeout() -> httpx.Timeout:
     return httpx.Timeout(DEFAULT_TIMEOUT)
 
 
-RESPONSE_PREVIEW_MAX_CHARS = 4096
+def normalize_agent_url(url: str) -> str:
+    """Ensure http(s) scheme so httpx accepts the URL (users often omit ``http://``)."""
+    t = (url or "").strip()
+    if not t:
+        return ""
+    lower = t.lower()
+    if lower.startswith("http://") or lower.startswith("https://"):
+        return t
+    return f"http://{t}"
 
 
-def truncate_response_preview(text: str, max_chars: int = RESPONSE_PREVIEW_MAX_CHARS) -> str:
-    if len(text) <= max_chars:
-        return text
-    return text[: max_chars - 1] + "…"
+def _api_process_in_container() -> bool:
+    """True when this Python process runs inside Docker (API container)."""
+    return os.path.exists("/.dockerenv")
+
+
+def rewrite_loopback_host_for_local_agent(url: str) -> str:
+    """
+    For HTTP_LOCAL, map loopback hosts to host.docker.internal so requests from the API
+    container reach services on the host. Remote connections must not use this.
+    """
+    try:
+        p = urlparse(url)
+    except Exception:
+        return url
+    host = (p.hostname or "").lower()
+    if host not in ("localhost", "127.0.0.1", "::1"):
+        return url
+    auth = ""
+    if p.username is not None:
+        auth = p.username
+        if p.password:
+            auth += f":{p.password}"
+        auth += "@"
+    hostport = "host.docker.internal"
+    if p.port:
+        hostport += f":{p.port}"
+    netloc = auth + hostport
+    return urlunparse((p.scheme, netloc, p.path, p.params, p.query, p.fragment))
 
 
 async def execute_http_with_settings(
@@ -121,15 +156,18 @@ async def execute_http_with_settings(
     *,
     post_body: Tuple[bytes, str] | None = None,
     include_response_preview: bool = False,
+    connection_kind: str | None = None,
 ) -> dict[str, Any]:
     """
     Single HTTP request using agent connection settings (same behavior as connection test).
     For POST, uses ``build_http_payload(settings)`` when ``post_body`` is omitted (verify flow).
     Pass ``post_body`` to send a custom body (e.g. attack prompts).
     """
-    url = (settings.get("url") or "").strip()
+    url = normalize_agent_url(str(settings.get("url") or ""))
     if not url:
         return {"ok": False, "detail": "url is required"}
+    if connection_kind == CONNECTION_KIND_HTTP_LOCAL and _api_process_in_container():
+        url = rewrite_loopback_host_for_local_agent(url)
 
     method = get_http_method(settings)
     try:
@@ -156,6 +194,15 @@ async def execute_http_with_settings(
                     **extra_headers,
                 },
             )
+    except httpx.ConnectError as e:
+        base = str(e) or "connection failed"
+        hint = " Check host, port, and path; confirm the agent accepts connections."
+        if connection_kind == CONNECTION_KIND_HTTP_LOCAL:
+            hint += (
+                " If the agent runs on your machine while the API is in Docker, use HTTP local "
+                "or put host.docker.internal in the URL."
+            )
+        return {"ok": False, "detail": f"{base} {hint}"}
     except Exception as e:
         return {"ok": False, "detail": str(e) or "request failed"}
 
@@ -180,5 +227,8 @@ async def execute_http_with_settings(
             raw = r.text
         except Exception:
             raw = ""
-        out["response_preview"] = truncate_response_preview(raw) if raw else None
+        if raw:
+            out["response_preview"] = raw
+        else:
+            out["response_preview"] = None
     return out

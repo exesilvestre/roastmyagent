@@ -15,10 +15,17 @@ def encrypt_secret(plain: str) -> str:
 
 
 def decrypt_secret(token: str) -> str:
+    raw = (token or "").strip()
+    if not raw:
+        raise ValueError("empty encrypted secret")
     try:
-        return _fernet().decrypt(token.encode("ascii")).decode("utf-8")
+        return _fernet().decrypt(raw.encode("ascii")).decode("utf-8")
     except InvalidToken as exc:
-        raise ValueError("invalid ciphertext") from exc
+        raise ValueError(
+            "Failed to decrypt stored secret (wrong FERNET_KEY, corrupted data, or value not "
+            "encrypted with this key). Use the same FERNET_KEY that was used when the data was "
+            "saved, or re-enter API keys and agent connection secrets in the app."
+        ) from exc
 
 
 def mask_key_preview(plain: str) -> str:

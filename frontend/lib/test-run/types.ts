@@ -18,5 +18,6 @@ export type RunStepRow = {
     reasoning: string | null;
     failed: boolean;
     error: string | null;
+    constraintSummary?: string | null;
   };
 };

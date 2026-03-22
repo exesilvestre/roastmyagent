@@ -60,6 +60,7 @@ class AttackTestStepResult(BaseModel):
     judge_reasoning: str | None = None
     judge_failed: bool | None = None
     judge_error: str | None = None
+    judge_constraint_summary: dict[str, str] | None = None
 
 
 class AttackTestRunResponse(BaseModel):

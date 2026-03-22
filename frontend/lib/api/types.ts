@@ -45,6 +45,7 @@ export type AttackTestStepApi = {
   judgeReasoning?: string | null;
   judgeFailed?: boolean | null;
   judgeError?: string | null;
+  judgeConstraintSummary?: Record<string, string> | null;
 };
 
 export type AttackTestRunApi = {
@@ -78,6 +79,7 @@ export type AttackTestStreamEvent =
       reasoning: string | null;
       failed: boolean;
       error: string | null;
+      constraintSummary?: string | null;
     }
   | { event: "run_finished"; okCount: number; failCount: number }
   | { event: "run_saved"; runId: string }

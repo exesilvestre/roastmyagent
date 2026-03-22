@@ -7,7 +7,7 @@ from typing import Any
 @dataclass
 class FoldedTestRunState:
     total_steps: int = 0
-    summary: dict[str, int] | None = None  # ok, fail
+    summary: dict[str, int] | None = None  
     by_index: dict[int, dict[str, Any]] = field(default_factory=dict)
     fatal_error: str | None = None
 
@@ -61,6 +61,9 @@ def fold_attack_test_events(events: list[dict[str, Any]]) -> FoldedTestRunState:
                     "reasoning": ev.get("reasoning"),
                     "failed": bool(ev.get("failed", False)),
                     "error": ev.get("error"),
+                    "constraintSummary": ev.get("constraintSummary")
+                    if ev.get("constraintSummary") is not None
+                    else ev.get("constraint_summary"),
                 },
             }
         elif kind == "run_finished":
