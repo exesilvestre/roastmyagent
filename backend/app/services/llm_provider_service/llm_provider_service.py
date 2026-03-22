@@ -5,6 +5,8 @@ from app.core.security import encrypt_secret
 from app.models.llm_provider_config import AppSettings, LlmProviderConfig
 from .constants import PROVIDER_LABELS, PROVIDER_ORDER
 
+OLLAMA_ID = "ollama"
+
 
 class LlmProviderService:
     def __init__(self, db: AsyncSession):
@@ -40,6 +42,8 @@ class LlmProviderService:
     def _is_ready(self, row: LlmProviderConfig) -> bool:
         if not row.model or not row.model.strip():
             return False
+        if row.id == OLLAMA_ID:
+            return True
         if not row.encrypted_api_key or not row.encrypted_api_key.strip():
             return False
         return True
@@ -66,7 +70,7 @@ class LlmProviderService:
     async def update_provider(self, provider_id: str, patch: dict[str, Any]) -> LlmProviderConfig | None:
         if provider_id not in PROVIDER_LABELS:
             return None
-        row = await self._get_provider(provider_id)
+        row = await self._ensure_provider_row(provider_id)
         if row is None:
             return None
         if "api_key" in patch:
@@ -88,7 +92,7 @@ class LlmProviderService:
     async def activate_provider(self, provider_id: str) -> bool:
         if provider_id not in PROVIDER_LABELS:
             return False
-        row = await self._get_provider(provider_id)
+        row = await self._ensure_provider_row(provider_id)
         if row is None or not self._is_ready(row):
             return False
         settings_row = await self._get_settings_row()

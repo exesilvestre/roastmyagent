@@ -1,10 +1,24 @@
+import httpx
 from fastapi import APIRouter, HTTPException, status
 
 from app.api.deps import DbSession
-from app.schemas.llm_provider import LlmProviderOut, LlmProviderUpdate
+from app.core.config import settings
+from app.schemas.llm_provider import LlmProviderOut, LlmProviderUpdate, OllamaHealthOut
 from app.services.llm_provider_service.llm_provider_service import LlmProviderService
 
 router = APIRouter()
+
+
+@router.get("/ollama/health", response_model=OllamaHealthOut)
+async def ollama_health() -> OllamaHealthOut:
+    base = settings.ollama_base_url.rstrip("/")
+    url = f"{base}/api/tags"
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            response = await client.get(url)
+            return OllamaHealthOut(ok=response.is_success)
+    except (httpx.HTTPError, OSError, ValueError):
+        return OllamaHealthOut(ok=False)
 
 
 @router.get("", response_model=list[LlmProviderOut])
@@ -48,5 +62,5 @@ async def activate_llm_provider(provider_id: str, db: DbSession) -> None:
     if not ok:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="provider must have model and API key configured",
+            detail="provider is not ready to activate (configure model and API key for cloud providers; model only for local Ollama)",
         )

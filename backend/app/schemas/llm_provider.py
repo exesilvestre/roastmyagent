@@ -17,3 +17,9 @@ class LlmProviderUpdate(BaseModel):
 
     api_key: str | None = None
     model: str | None = None
+
+
+class OllamaHealthOut(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    ok: bool
