@@ -110,11 +110,21 @@ def get_http_timeout() -> httpx.Timeout:
     return httpx.Timeout(DEFAULT_TIMEOUT)
 
 
+RESPONSE_PREVIEW_MAX_CHARS = 4096
+
+
+def truncate_response_preview(text: str, max_chars: int = RESPONSE_PREVIEW_MAX_CHARS) -> str:
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 1] + "…"
+
+
 async def execute_http_with_settings(
     settings: dict[str, Any],
     secret: str | None,
     *,
     post_body: Tuple[bytes, str] | None = None,
+    include_response_preview: bool = False,
 ) -> dict[str, Any]:
     """
     Single HTTP request using agent connection settings (same behavior as connection test).
@@ -163,11 +173,19 @@ async def execute_http_with_settings(
             )
         else:
             detail = f"HTTP {r.status_code}"
-    return {
+
+    out: dict[str, Any] = {
         "ok": ok,
         "status_code": r.status_code,
         "detail": detail,
     }
+    if include_response_preview:
+        try:
+            raw = r.text
+        except Exception:
+            raw = ""
+        out["response_preview"] = truncate_response_preview(raw) if raw else None
+    return out
 
 
 def build_mcp_server_config(settings: dict[str, Any], secret: str | None) -> dict[str, Any]:

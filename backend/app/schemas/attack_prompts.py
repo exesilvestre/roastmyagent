@@ -49,9 +49,17 @@ class AttackTestStepResult(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     prompt_id: UUID
+    category: str | None = None
+    intent: str | None = None
     ok: bool
     status_code: int | None = None
     detail: str | None = None
+    response_preview: str | None = None
+    judge_score: int | None = None
+    judge_verdict: str | None = None
+    judge_reasoning: str | None = None
+    judge_failed: bool | None = None
+    judge_error: str | None = None
 
 
 class AttackTestRunResponse(BaseModel):
