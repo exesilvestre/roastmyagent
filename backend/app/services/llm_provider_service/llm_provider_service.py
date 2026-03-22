@@ -5,6 +5,8 @@ from app.core.security import encrypt_secret
 from app.models.llm_provider_config import AppSettings, LlmProviderConfig
 from .constants import PROVIDER_LABELS, PROVIDER_ORDER
 
+OLLAMA_ID = "ollama"
+
 
 class LlmProviderService:
     def __init__(self, db: AsyncSession):
@@ -40,6 +42,8 @@ class LlmProviderService:
     def _is_ready(self, row: LlmProviderConfig) -> bool:
         if not row.model or not row.model.strip():
             return False
+        if row.id == OLLAMA_ID:
+            return True
         if not row.encrypted_api_key or not row.encrypted_api_key.strip():
             return False
         return True

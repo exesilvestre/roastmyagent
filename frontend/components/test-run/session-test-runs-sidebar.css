@@ -1,0 +1,98 @@
+aside.sessionTestRunsSidebar.testRunsHistory_listCol {
+  max-height: none;
+  min-height: 0;
+  align-self: stretch;
+  overflow: hidden;
+}
+
+.sessionTestRunsSidebar {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.sessionTestRunsSidebar .testRunsHistory_list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.sessionTestRunsSidebar_top {
+  flex-shrink: 0;
+  margin-bottom: 0.75rem;
+}
+
+.sessionTestRunsSidebar_back {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  text-decoration: none;
+  margin-bottom: 0.35rem;
+}
+
+.sessionTestRunsSidebar_back:hover {
+  color: var(--foreground);
+}
+
+.sessionTestRunsSidebar_hint {
+  margin: 0;
+  font-size: 0.58rem;
+  line-height: 1.3;
+  color: var(--muted-foreground);
+  opacity: 0.88;
+}
+
+.sessionTestRunsSidebar_heading {
+  font-size: 0.58rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+  margin: 0 0 0.35rem;
+}
+
+.sessionTestRunsSidebar_card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.sessionTestRunsSidebar_liveCard {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.45rem 0.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+  border: 1px dashed color-mix(in oklab, var(--foreground) 28%, transparent);
+  background: color-mix(in oklab, var(--foreground) 4%, transparent);
+}
+
+.sessionTestRunsSidebar_liveBadge {
+  align-self: flex-start;
+  font-size: 0.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.35rem;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--destructive) 22%, transparent);
+  color: var(--destructive);
+}
+
+.sessionTestRunsSidebar_liveTitle {
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.sessionTestRunsSidebar_liveSub {
+  font-size: 0.58rem;
+  color: var(--muted-foreground);
+  line-height: 1.25;
+}

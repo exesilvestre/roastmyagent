@@ -6,6 +6,37 @@
   width: 100%;
 }
 
+/**
+ * Test run / history routes: no document scroll — only inner panes scroll
+ * (sidebar list + main test panel).
+ */
+.appShell_viewportLocked {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.appShell_viewportLocked .appShell_panels {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.appShell_viewportLocked .appShell_main.appShell_mainTestSession {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.appShell_viewportLocked .appShell_bodyTestSession {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
 .appShell_panels {
   flex: 1;
   display: flex;
@@ -25,6 +56,17 @@
   overflow: hidden;
   align-self: stretch;
   display: flex;
+  min-height: 0;
+}
+
+.appShell_sidebarWrapTestHistory {
+  width: var(--sidebar-width-test-history);
+  flex-direction: column;
+}
+
+/* Fill vertical space below header; inner list scrolls */
+.appShell_sidebarWrapTestHistory > aside {
+  flex: 1;
   min-height: 0;
 }
 
@@ -67,8 +109,6 @@
   border-radius: var(--radius-control);
   border: 1px solid var(--border-bright);
   background: var(--surface-elevated);
-  max-height: 12rem;
-  overflow: auto;
 }
 
 .appShell_agentTitle {
@@ -90,6 +130,219 @@
   font-family: inherit;
 }
 
+.appShell_agentPreviewBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-control);
+}
+
+.appShell_agentPreviewBtn:hover .appShell_agentPreviewText {
+  color: var(--foreground);
+}
+
+.appShell_agentPreviewBtn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.appShell_agentPreviewText {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--foreground);
+  font-family: inherit;
+}
+
+.appShell_agentPreviewHint {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+
+.appShell_agentEmptyBtn {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.appShell_agentEmptyBtn:hover {
+  color: var(--foreground);
+}
+
+.appShell_agentEmptyBtn:focus-visible {
+  outline: 2px solid color-mix(in oklab, var(--ring) 70%, transparent);
+  outline-offset: 2px;
+}
+
+.appShell_agentModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.appShell_agentModalPanel {
+  display: flex;
+  flex-direction: column;
+  width: min(38rem, 100%);
+  max-height: min(85vh, 36rem);
+  overflow: hidden;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.appShell_agentModalHeader {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.appShell_agentModalTitle {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.appShell_agentModalClose {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.appShell_agentModalClose:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--surface-hover);
+}
+
+.appShell_agentModalClose:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.appShell_agentModalBody {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0.75rem 0.9rem;
+  gap: 0.35rem;
+}
+
+.appShell_agentModalTextarea {
+  flex: 1;
+  min-height: 12rem;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0.6rem 0.65rem;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-bright);
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.appShell_agentModalTextarea:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--ring) 55%, var(--border-bright));
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--ring) 35%, transparent);
+}
+
+.appShell_agentModalHint {
+  margin: 0;
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+}
+
+.appShell_agentModalFooter {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+.appShell_agentModalBtn {
+  padding: 0.4rem 0.85rem;
+  border-radius: var(--radius-control);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.appShell_agentModalBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.appShell_agentModalBtnGhost {
+  background: transparent;
+  border-color: var(--border-bright);
+  color: var(--foreground);
+}
+
+.appShell_agentModalBtnGhost:hover:not(:disabled) {
+  background: var(--surface-hover);
+}
+
+.appShell_agentModalBtnPrimary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-color: color-mix(in oklab, var(--primary) 80%, transparent);
+}
+
+.appShell_agentModalBtnPrimary:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
 .appShell_body {
   flex: 1;
   min-height: 8rem;
@@ -99,6 +352,34 @@
   padding: 1.25rem;
   color: var(--muted-foreground);
   font-size: 0.875rem;
+}
+
+.appShell_mainTestSession {
+  padding-top: 1rem;
+}
+
+.appShell_bodyTestSession {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: inherit;
+  min-height: 0;
+}
+
+.appShell_sidebarFallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+  border-radius: var(--radius-panel);
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+}
+
+.appShell_sidebarFallbackText {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--muted-foreground);
 }
 
 .appShell_empty {

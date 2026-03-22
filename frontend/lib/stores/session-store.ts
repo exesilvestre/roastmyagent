@@ -33,6 +33,10 @@ export type CreateSessionInput = {
   agentConnection?: CreateSessionAgentConnection;
 };
 
+export type UpdateSessionPatch = {
+  agentDescription?: string | null;
+};
+
 type SessionStore = {
   sessions: Session[];
   activeSessionId: string | null;
@@ -40,6 +44,7 @@ type SessionStore = {
   error: string | null;
   fetchSessions: () => Promise<void>;
   createSession: (input: CreateSessionInput) => Promise<void>;
+  updateSession: (id: string, patch: UpdateSessionPatch) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   setActiveSession: (id: string | null) => void;
 };
@@ -102,6 +107,27 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
         error: e instanceof Error ? e.message : "Failed to create session",
       });
       throw e;
+    }
+  },
+  updateSession: async (id: string, patch: UpdateSessionPatch) => {
+    const body: Record<string, unknown> = {};
+    if ("agentDescription" in patch) {
+      body.agentDescription = patch.agentDescription ?? null;
+    }
+    if (Object.keys(body).length === 0) {
+      return;
+    }
+    try {
+      const row = await apiFetch<SessionApi>(`/api/v1/sessions/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      });
+      const session = mapSession(row);
+      set((state) => ({
+        sessions: state.sessions.map((s) => (s.id === id ? session : s)),
+      }));
+    } catch (e) {
+      throw e instanceof Error ? e : new Error("Failed to update session");
     }
   },
   deleteSession: async (id: string) => {

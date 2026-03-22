@@ -3,7 +3,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-ConnectionKind = Literal["MCP", "HTTP_LOCAL", "HTTP_REMOTE_BASIC"]
+ConnectionKind = Literal["HTTP_LOCAL", "HTTP_REMOTE_BASIC"]
 
 
 class AgentConnectionCreate(BaseModel):

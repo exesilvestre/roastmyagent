@@ -24,13 +24,25 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql+asyncpg://roastmyagent:roastmyagent@db:5432/roastmyagent
       CORS_ORIGINS: http://localhost:3000
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
     depends_on:
       db:
         condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
 
 volumes:
   pgdata:

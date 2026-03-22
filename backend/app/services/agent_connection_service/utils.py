@@ -9,11 +9,7 @@ from app.services.agent_connection_service.constants import (
     AUTH_TYPE_NONE,
     DEFAULT_HTTP_METHOD,
     DEFAULT_TIMEOUT,
-    DEFAULT_TRANSPORT,
     HTTP_METHOD_POST,
-    TRANSPORT_HTTP,
-    TRANSPORT_SSE,
-    TRANSPORT_STDIO,
 )
 
 
@@ -110,11 +106,21 @@ def get_http_timeout() -> httpx.Timeout:
     return httpx.Timeout(DEFAULT_TIMEOUT)
 
 
+RESPONSE_PREVIEW_MAX_CHARS = 4096
+
+
+def truncate_response_preview(text: str, max_chars: int = RESPONSE_PREVIEW_MAX_CHARS) -> str:
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 1] + "…"
+
+
 async def execute_http_with_settings(
     settings: dict[str, Any],
     secret: str | None,
     *,
     post_body: Tuple[bytes, str] | None = None,
+    include_response_preview: bool = False,
 ) -> dict[str, Any]:
     """
     Single HTTP request using agent connection settings (same behavior as connection test).
@@ -163,48 +169,16 @@ async def execute_http_with_settings(
             )
         else:
             detail = f"HTTP {r.status_code}"
-    return {
+
+    out: dict[str, Any] = {
         "ok": ok,
         "status_code": r.status_code,
         "detail": detail,
     }
-
-
-def build_mcp_server_config(settings: dict[str, Any], secret: str | None) -> dict[str, Any]:
-    name = "target"
-    transport = (settings.get("transport") or DEFAULT_TRANSPORT).strip().lower()
-
-    headers: dict[str, str] = {}
-    if secret and secret.strip():
-        headers["Authorization"] = f"{AUTH_TYPE_BEARER} {secret.strip()}"
-
-    if transport == TRANSPORT_STDIO:
-        cmd = settings.get("command")
-        if not cmd or not str(cmd).strip():
-            raise ValueError("command is required for stdio MCP")
-
-        args = settings.get("args") or []
-        if not isinstance(args, list):
-            raise ValueError("args must be a list of strings")
-
-        return {
-            name: {
-                "transport": TRANSPORT_STDIO,
-                "command": str(cmd).strip(),
-                "args": [str(a) for a in args],
-            }
-        }
-
-    url = (settings.get("url") or "").strip()
-    if not url:
-        raise ValueError("url is required for MCP")
-
-    if transport == TRANSPORT_SSE:
-        block = {"transport": TRANSPORT_SSE, "url": url}
-    else:
-        block = {"transport": TRANSPORT_HTTP, "url": url}
-
-    if headers:
-        block["headers"] = headers
-
-    return {name: block}
+    if include_response_preview:
+        try:
+            raw = r.text
+        except Exception:
+            raw = ""
+        out["response_preview"] = truncate_response_preview(raw) if raw else None
+    return out

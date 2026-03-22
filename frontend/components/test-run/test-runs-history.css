@@ -1,0 +1,261 @@
+.testRunsHistory {
+  position: relative;
+  max-width: 100%;
+  min-height: min(70vh, 42rem);
+}
+
+.testRunsHistory_bg {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 45% at 15% 0%, rgba(34, 211, 238, 0.1), transparent 55%),
+    radial-gradient(ellipse 55% 40% at 95% 100%, rgba(167, 139, 250, 0.12), transparent 50%);
+}
+
+.testRunsHistory > *:not(.testRunsHistory_bg) {
+  position: relative;
+  z-index: 1;
+}
+
+.testRunsHistory_header {
+  margin-bottom: 1.25rem;
+}
+
+.testRunsHistory_headerRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.testRunsHistory_back {
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+  text-decoration: none;
+}
+
+.testRunsHistory_back:hover {
+  color: var(--foreground);
+}
+
+.testRunsHistory_badge {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-bright);
+  color: var(--muted-foreground);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.testRunsHistory_title {
+  margin: 0;
+  font-size: 1.0rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.testRunsHistory_sub {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+.testRunsHistory_split {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .testRunsHistory_split {
+    grid-template-columns: 1fr;
+  }
+}
+
+.testRunsHistory_listCol {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: rgba(24, 24, 27, 0.65);
+  backdrop-filter: blur(12px);
+  padding: 0.45rem 0.5rem;
+  max-height: min(78vh, 600px);
+  overflow: auto;
+}
+
+.testRunsHistory_list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.testRunsHistory_card {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-subtle);
+  background: var(--surface);
+  padding: 0.45rem 0.5rem;
+  color: var(--foreground);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.testRunsHistory_card:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+.testRunsHistory_cardActive {
+  border-color: rgba(167, 139, 250, 0.45);
+  box-shadow: 0 0 0 1px rgba(167, 139, 250, 0.2);
+  background: rgba(167, 139, 250, 0.06);
+}
+
+.testRunsHistory_cardTime {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+  line-height: 1.25;
+}
+
+.testRunsHistory_cardMeta {
+  display: block;
+  font-size: 0.58rem;
+  color: var(--muted-foreground);
+  margin-bottom: 0.2rem;
+  line-height: 1.3;
+}
+
+.testRunsHistory_cardStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  font-size: 0.58rem;
+}
+
+.testRunsHistory_statOk {
+  color: #86efac;
+}
+
+.testRunsHistory_statFail {
+  color: #fca5a5;
+}
+
+.testRunsHistory_statSep {
+  color: var(--muted-foreground);
+}
+
+.testRunsHistory_detailCol {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: rgba(24, 24, 27, 0.45);
+  backdrop-filter: blur(8px);
+  padding: 1rem 1.1rem;
+  min-height: 320px;
+}
+
+.testRunsHistory_detailInner .testRun_bg {
+  display: none;
+}
+
+.testRunsHistory_detailInner .testRun {
+  max-width: none;
+}
+
+.testRunsHistory_detailMetaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.testRunsHistory_detailMeta {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+  line-height: 1.35;
+  padding-top: 0.1rem;
+}
+
+.testRunsHistory_exportBtn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: -0.05rem;
+  font-size: 0.625rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  padding: 0.18rem 0.42rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  line-height: 1.2;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.testRunsHistory_exportBtn:hover:not(:disabled) {
+  border-color: rgba(167, 139, 250, 0.35);
+  background: rgba(167, 139, 250, 0.06);
+  color: var(--foreground);
+}
+
+.testRunsHistory_exportBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.testRunsHistory_muted {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+.testRunsHistory_err {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #fecaca;
+}
+
+.testRunsHistory_empty {
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.testRunsHistory_emptyTitle {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.testRunsHistory_embed {
+  min-height: min(70vh, 48rem);
+}
+
+.testRunsHistory_headerEmbed {
+  margin-bottom: 1rem;
+}
+
+.testRunsHistory_detailOnly {
+  min-height: 12rem;
+}

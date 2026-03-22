@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     database_url: str = "postgresql+asyncpg://roastmyagent:roastmyagent@localhost:5432/roastmyagent"
     fernet_key: str = ""
+    # Ollama HTTP API (use http://host.docker.internal:11434 when the API runs in Docker on the same machine as Ollama)
+    ollama_base_url: str = "http://127.0.0.1:11434"
 
     @property
     def cors_origin_list(self) -> list[str]:

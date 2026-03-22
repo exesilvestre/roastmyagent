@@ -1,26 +1,33 @@
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.core.security import decrypt_secret
 from app.models.llm_provider_config import AppSettings, LlmProviderConfig
 from app.services.llm_provider_service.constants import PROVIDER_LABELS
-
+from app.services.llm_invocation_service.constants import OPENAI, ANTHROPIC, GEMINI, OLLAMA
 
 class NoActiveLlmProviderError(Exception):
     """No active LLM provider or provider is missing model/API key."""
 
 
-def _build_chat_model(provider_id: str, *, api_key: str, model: str) -> BaseChatModel:
-    if provider_id == "openai":
-        return ChatOpenAI(api_key=api_key, model=model)
-    if provider_id == "anthropic":
-        return ChatAnthropic(api_key=api_key, model=model)
-    if provider_id == "gemini":
-        return ChatGoogleGenerativeAI(api_key=api_key, model=model)
+def _build_chat_model(provider_id: str, *, api_key: str | None, model: str) -> BaseChatModel:
+    if provider_id == OPENAI:
+        return ChatOpenAI(api_key=api_key or "", model=model)
+    if provider_id == ANTHROPIC:
+        return ChatAnthropic(api_key=api_key or "", model=model)
+    if provider_id == GEMINI:
+        return ChatGoogleGenerativeAI(api_key=api_key or "", model=model)
+    if provider_id == OLLAMA:
+        return ChatOllama(
+            model=model,
+            base_url=settings.ollama_base_url.rstrip("/"),
+        )
     raise NoActiveLlmProviderError(f"unsupported provider: {provider_id}")
 
 
@@ -53,6 +60,9 @@ class LlmInvocationService:
 
         if not row.model or not str(row.model).strip():
             raise NoActiveLlmProviderError("active provider has no model configured")
+        if active_id == OLLAMA:
+            return _build_chat_model(active_id, api_key=None, model=str(row.model).strip())
+
         if not row.encrypted_api_key or not str(row.encrypted_api_key).strip():
             raise NoActiveLlmProviderError("active provider has no API key configured")
 
