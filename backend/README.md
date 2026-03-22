@@ -35,18 +35,6 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
 OpenAPI: `http://localhost:8000/docs`
 
-### Main endpoints (v1)
-
-- `GET /health`
-- `GET /api/v1/sessions` — list evaluation sessions
-- `POST /api/v1/sessions` — create session (optional `agentConnection` in body; HTTP agent endpoints only)
-- `PATCH /api/v1/sessions/{id}` — update title/status
-- `POST /api/v1/agent-connection/verify` — test an HTTP agent connection without saving
-- `POST /api/v1/sessions/{id}/agent-connection/test` — test using stored encrypted secrets
-- `GET /api/v1/llm-providers` — list providers (no raw keys)
-- `PATCH /api/v1/llm-providers/{provider_id}` — set `api_key` / `model` (JSON body, camelCase accepted)
-- `POST /api/v1/llm-providers/{provider_id}/activate` — mark provider active (requires key + model)
-
 ## Docker (API + Postgres + frontend)
 
 From repo root, easiest: `./roastmyagent up` or `roastmyagent.cmd up` (generates `FERNET_KEY` into `backend/.env` when empty). Or copy `backend/.env.example` to `backend/.env`, set `FERNET_KEY`, then:
