@@ -1,4 +1,4 @@
-import { ProviderSelect } from "@/components/ui/provider-select/ProviderSelect";
+import { ProviderSelect } from "@/components/common/provider-select/ProviderSelect";
 import type { CloudLlmProviderId } from "@/lib/types/llm-provider";
 import type { ProviderConfigModalCloudProps } from "./types";
 

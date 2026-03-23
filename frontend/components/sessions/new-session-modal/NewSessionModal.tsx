@@ -151,7 +151,7 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
         }),
       });
       if (res.ok) {
-        setTestHint(res.preview ? `OK — ${res.preview}` : "OK");
+        setTestHint(res.preview ? `OK: ${res.preview}` : "OK");
         appToast.success("Connection OK");
       } else {
         setTestHint(res.detail || "Failed");

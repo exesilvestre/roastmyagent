@@ -40,10 +40,10 @@ export function ModalHeader({ step }: NewSessionModalHeaderProps) {
         </ol>
         <p className="newSessionModal_stepCaption">
           {step === 0
-            ? "Step 1 of 3 — name and describe the agent."
+            ? "Step 1 of 3: name and describe the agent."
             : step === 1
-              ? "Step 2 of 3 — how the API reaches the agent."
-              : "Step 3 of 3 — verify the connection, then create the session."}
+              ? "Step 2 of 3: how the API reaches the agent."
+              : "Step 3 of 3: verify the connection, then create the session."}
         </p>
       </nav>
     </div>

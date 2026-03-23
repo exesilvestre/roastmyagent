@@ -116,7 +116,7 @@ class LlmInvocationService:
             )
         except asyncio.TimeoutError:
             raise ProviderPingError(
-                "Timed out waiting for LLM response — check model name, API key, and network."
+                "Timed out waiting for LLM response, check model name, API key, and network."
             ) from None
         except Exception as e:
             raise ProviderPingError(
@@ -130,6 +130,5 @@ class LlmInvocationService:
             text = "".join(str(block) for block in content)
         else:
             text = str(content)
-        # Do not require "pong" — a conversational reply still proves the channel works.
         if not text.strip():
             raise ProviderPingError("Empty response from provider")

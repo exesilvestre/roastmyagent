@@ -144,7 +144,7 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
       );
       setRows(data.prompts);
       setDirty(true);
-      appToast.success("Generated — click Save to store in this session");
+      appToast.success("Generated, click Save to store in this session");
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Generation failed";
       setActionError(msg);

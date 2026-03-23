@@ -154,10 +154,10 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
       const verify = await fetchOllamaHealth();
       await fetchProviders();
       if (verify.ok) {
-        appToast.success(`Model "${ollamaModelDraft.trim()}" saved — Ollama responded OK.`);
+        appToast.success(`Model "${ollamaModelDraft.trim()}" saved, Ollama responded OK.`);
       } else {
         appToast.error(
-          "Model saved, but Ollama did not respond to a check — verify OLLAMA_BASE_URL.",
+          "Model saved, but Ollama did not respond to a check, verify OLLAMA_BASE_URL.",
         );
       }
       onClose();
@@ -177,7 +177,7 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
       const health = await fetchOllamaHealth();
       if (!health.ok) {
         setLocalHelpVisible(true);
-        appToast.error("Could not reach Ollama — check it is running and OLLAMA_BASE_URL.");
+        appToast.error("Could not reach Ollama, check it is running and OLLAMA_BASE_URL.");
         return;
       }
       const model = ollamaModelDraft.trim() || DEFAULT_OLLAMA_MODEL;
@@ -186,10 +186,10 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
       const verify = await fetchOllamaHealth();
       await fetchProviders();
       if (verify.ok) {
-        appToast.success(`Using Ollama · model ${model} — API responded OK.`);
+        appToast.success(`Using Ollama · model ${model}, API responded OK.`);
       } else {
         appToast.error(
-          "Ollama was activated but a follow-up check failed — verify OLLAMA_BASE_URL.",
+          "Ollama was activated but a follow-up check failed, verify OLLAMA_BASE_URL.",
         );
       }
       onClose();
@@ -231,9 +231,9 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
       try {
         const h = await fetchOllamaHealth();
         if (h.ok) {
-          appToast.success("Ollama API responded — connection OK.");
+          appToast.success("Ollama API responded, connection OK.");
         } else {
-          appToast.error("Ollama did not respond — check it is running and URL settings.");
+          appToast.error("Ollama did not respond, check it is running and URL settings.");
         }
       } catch (err) {
         appToast.error(err instanceof Error ? err.message : "Check failed");
@@ -250,7 +250,7 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
         const h = await fetchOllamaHealth();
         if (h.ok) {
           setLocalHelpVisible(false);
-          appToast.success("Ollama responded — try Update local again.");
+          appToast.success("Ollama responded, try Update local again.");
         } else {
           appToast.error("Still can't reach Ollama.");
         }

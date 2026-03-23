@@ -12,7 +12,7 @@ type LlmProviderStore = {
     id: LlmProviderId,
     body: { apiKey?: string; model?: string },
   ) => Promise<void>;
-  /** POST /activate — runs a minimal LLM ping on the server; throws on failure */
+  /** POST /activate: runs a minimal LLM ping on the server; throws on failure */
   activateProvider: (id: LlmProviderId) => Promise<void>;
 };
 

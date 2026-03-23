@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# RoastMyAgent CLI — prepare backend/.env (Fernet), then docker compose up --build
+# RoastMyAgent CLI: prepare backend/.env (Fernet), then docker compose up --build
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"

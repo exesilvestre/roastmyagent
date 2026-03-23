@@ -1,4 +1,4 @@
-import { ProviderSelect } from "@/components/ui/provider-select/ProviderSelect";
+import { ProviderSelect } from "@/components/common/provider-select/ProviderSelect";
 import type { AgentConnectionKind } from "@/lib/types/agent-connection";
 import {
   BODY_KIND_OPTIONS,

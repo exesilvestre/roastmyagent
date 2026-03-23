@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 /**
- * Live streamed test on /sessions/:id/run — drives a placeholder row in the test history sidebar
+ * Live streamed test on /sessions/:id/run, drives a placeholder row in the test history sidebar
  * until the saved run appears from the API.
  */
 type LiveTestRunState = {
