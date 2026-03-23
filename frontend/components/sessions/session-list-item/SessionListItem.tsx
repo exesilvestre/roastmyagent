@@ -33,7 +33,7 @@ export function SessionListItem({
       >
         <span className="sessionListItem_title">{session.title}</span>
         <span className="sessionListItem_meta">
-          {formatRelativeTime(session.updatedAt)} · {session.status}
+          {formatRelativeTime(session.updatedAt)}
         </span>
       </button>
       <button

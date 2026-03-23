@@ -74,7 +74,7 @@ export function AppShell({
                 <>
                   <h1 className="appShell_title">{active.title}</h1>
                   <p className="appShell_subtitle">
-                    Session · {active.status} · updated{" "}
+                    Session · updated{" "}
                     {new Date(active.updatedAt).toLocaleString()}
                   </p>
                   <section className="appShell_agent" aria-label="Agent context">

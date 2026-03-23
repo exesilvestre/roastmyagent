@@ -1,11 +1,9 @@
 import type { AgentConnectionKind } from "@/lib/types/agent-connection";
-import type { SessionStatus } from "@/lib/types/session";
 
 export type SessionApi = {
   id: string;
   title: string;
   agentDescription: string | null;
-  status: SessionStatus;
   createdAt: string;
   updatedAt: string;
   agentConnection: {

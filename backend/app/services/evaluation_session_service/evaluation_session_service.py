@@ -12,7 +12,6 @@ from app.models.session_agent_connection import SessionAgentConnection
 from app.schemas.agent_connection import AgentConnectionCreate
 from app.schemas.session import SessionOut, SessionUpdate
 from app.services.agent_connection_service.agent_connection_service import AgentConnectionService
-from app.services.evaluation_session_service.constants import SESSION_STATUS_DRAFT
 
 
 class EvaluationSessionService:
@@ -35,7 +34,6 @@ class EvaluationSessionService:
             id=row.id,
             title=row.title,
             agent_description=row.agent_description,
-            status=row.status,
             created_at=row.created_at,
             updated_at=row.updated_at,
             agent_connection=ac,
@@ -58,7 +56,6 @@ class EvaluationSessionService:
         row = EvaluationSession(
             title=title,
             agent_description=self._normalize_description(agent_description),
-            status=SESSION_STATUS_DRAFT,
         )
         self.db.add(row)
         await self.db.flush()
@@ -108,8 +105,6 @@ class EvaluationSessionService:
             row.title = data["title"]
         if "agent_description" in data:
             row.agent_description = self._normalize_description(data["agent_description"])
-        if "status" in data:
-            row.status = data["status"]
 
         row.updated_at = datetime.now(timezone.utc)
         await self.db.commit()
