@@ -13,7 +13,7 @@ class SessionCreate(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     title: str = Field(min_length=1, max_length=512)
-    agent_description: str | None = Field(default=None, max_length=16000)
+    agent_description: str | None = Field(default=None)
     agent_connection: AgentConnectionCreate | None = None
 
 
@@ -21,7 +21,7 @@ class SessionUpdate(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     title: str | None = Field(default=None, min_length=1, max_length=512)
-    agent_description: str | None = Field(default=None, max_length=16000)
+    agent_description: str | None = Field(default=None)
     status: Literal["COMPLETED", "RUNNING", "DRAFT"] | None = None
 
 

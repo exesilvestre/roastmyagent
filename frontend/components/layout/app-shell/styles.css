@@ -90,14 +90,14 @@
 }
 
 .appShell_title {
-  font-size: 1.125rem;
-  font-weight: 600;
+  font-size: 0.90rem;
+  font-weight: 450;
   letter-spacing: -0.02em;
   margin: 0 0 0.375rem;
 }
 
 .appShell_subtitle {
-  font-size: 0.8125rem;
+  font-size: 0.755rem;
   color: var(--muted-foreground);
   font-family: var(--font-mono);
   margin: 0 0 1rem;
@@ -156,8 +156,8 @@
 }
 
 .appShell_agentPreviewText {
-  font-size: 0.8125rem;
-  line-height: 1.5;
+  font-size: 0.755rem;
+  line-height: 1.15;
   white-space: pre-wrap;
   word-break: break-word;
   color: var(--foreground);

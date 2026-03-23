@@ -45,6 +45,7 @@ export type AttackTestStepApi = {
   judgeReasoning?: string | null;
   judgeFailed?: boolean | null;
   judgeError?: string | null;
+  /** Full structured fields from the judge (not truncated). */
   judgeConstraintSummary?: Record<string, string> | null;
 };
 
@@ -79,6 +80,9 @@ export type AttackTestStreamEvent =
       reasoning: string | null;
       failed: boolean;
       error: string | null;
+      /** Full structured constraint summary (camelCase from API). */
+      judgeConstraintSummary?: Record<string, string> | null;
+      /** @deprecated Old runs; preformatted string. Prefer judgeConstraintSummary. */
       constraintSummary?: string | null;
     }
   | { event: "run_finished"; okCount: number; failCount: number }

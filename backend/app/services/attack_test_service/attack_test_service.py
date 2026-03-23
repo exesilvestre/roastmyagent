@@ -8,8 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.attacker.context import build_attacker_context
-from app.agents.judge.graph import format_constraint_brief, run_judge_graph
-from app.agents.judge.schemas import ProbeConstraintSummary
+from app.agents.judge.graph import run_judge_graph
 from app.core.security import decrypt_secret
 from app.models.session_agent_connection import SessionAgentConnection
 from app.models.session_attack_prompt import SessionAttackPrompt
@@ -117,16 +116,6 @@ class AttackTestService:
             "detail": result.get("detail"),
             "response_preview": result.get("response_preview"),
         }
-
-    @staticmethod
-    def _constraint_summary_display(judge: dict[str, Any]) -> str | None:
-        raw = judge.get("judge_constraint_summary")
-        if not isinstance(raw, dict) or not raw:
-            return None
-        try:
-            return format_constraint_brief(ProbeConstraintSummary(**raw))
-        except Exception:
-            return None
 
     async def _judge_step(
         self,
@@ -282,7 +271,9 @@ class AttackTestService:
                 reasoning=judge.get("judge_reasoning"),
                 failed=bool(judge.get("judge_failed")),
                 error=judge.get("judge_error"),
-                constraint_summary=self._constraint_summary_display(judge),
+                judge_constraint_summary=judge.get("judge_constraint_summary")
+                if isinstance(judge.get("judge_constraint_summary"), dict)
+                else None,
             ).model_dump(mode="json", by_alias=True)
 
             if i < n - 1 and delay_seconds > 0:
@@ -332,6 +323,7 @@ class AttackTestService:
                 "judge_error": s.get("judge_error"),
                 "judge_constraint_summary": s.get("judge_constraint_summary"),
             }
+            jcs = jg.get("judge_constraint_summary")
             out.append(
                 JudgeFinishedEvent(
                     index=i,
@@ -340,7 +332,7 @@ class AttackTestService:
                     reasoning=jg.get("judge_reasoning"),
                     failed=bool(jg.get("judge_failed")),
                     error=jg.get("judge_error"),
-                    constraint_summary=AttackTestService._constraint_summary_display(jg),
+                    judge_constraint_summary=jcs if isinstance(jcs, dict) else None,
                 ).model_dump(mode="json", by_alias=True),
             )
         out.append(

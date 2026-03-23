@@ -105,6 +105,7 @@ export function TestRunPanel({ sessionId, sessionTitle, launch }: TestRunPanelPr
               reasoning: ev.reasoning,
               failed: ev.failed,
               error: ev.error,
+              judgeConstraintSummary: ev.judgeConstraintSummary ?? null,
               constraintSummary: ev.constraintSummary ?? null,
             },
           },
