@@ -15,10 +15,6 @@ const CONNECTION_OPTIONS = [
   { id: "HTTP_REMOTE_BASIC", label: "HTTP remote" },
 ];
 
-const HTTP_METHOD_OPTIONS = [
-  { id: "POST", label: "POST" },
-];
-
 const BODY_KIND_OPTIONS = [
   { id: "json", label: "JSON" },
   { id: "text", label: "Plain text" },
@@ -62,7 +58,6 @@ function urlTargetsSameApiAsApp(urlStr: string): boolean {
 function buildAgentConnection(
   mode: AgentConnectionKind,
   httpUrl: string,
-  httpMethod: string,
   bodyKind: string,
   httpBodyJson: string,
   httpBodyText: string,
@@ -75,7 +70,7 @@ function buildAgentConnection(
   if (mode === "HTTP_LOCAL") {
     const settings: Record<string, unknown> = {
       url: normalizeAgentHttpUrl(httpUrl),
-      httpMethod,
+      httpMethod: "POST",
       bodyKind,
       bodyContent,
       authType: httpAuth,
@@ -94,7 +89,7 @@ function buildAgentConnection(
 
   const settings: Record<string, unknown> = {
     url: normalizeAgentHttpUrl(httpUrl),
-    httpMethod,
+    httpMethod: "POST",
     bodyKind,
     bodyContent,
     authType: httpAuth,
@@ -121,7 +116,6 @@ function formatTestRequestPreview(
   }
   const s = payload.settings as Record<string, unknown>;
   const url = String(s.url || "").trim() || "(no URL)";
-  const method = String(s.httpMethod || "POST").toUpperCase();
   const isHttp =
     payload.connectionKind === "HTTP_REMOTE_BASIC" ||
     payload.connectionKind === "HTTP_LOCAL";
@@ -136,9 +130,6 @@ function formatTestRequestPreview(
       const u = String(s.username || "").trim();
       authLines.push(`Authentication: Basic (user: ${u || "—"})`);
     }
-  }
-  if (method === "GET") {
-    return ["GET " + url, ...authLines].join("\n");
   }
   const bk = String(s.bodyKind || "json");
   const raw = s.bodyContent != null ? String(s.bodyContent) : "";
@@ -177,7 +168,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
   const [mode, setMode] = useState<AgentConnectionKind>("HTTP_LOCAL");
 
   const [httpUrl, setHttpUrl] = useState("");
-  const [httpMethod, setHttpMethod] = useState("POST");
   const [bodyKind, setBodyKind] = useState("json");
   const [httpBodyJson, setHttpBodyJson] = useState(DEFAULT_JSON_BODY);
   const [httpBodyText, setHttpBodyText] = useState("hello");
@@ -199,7 +189,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
     setAgentDescription("");
     setMode("HTTP_LOCAL");
     setHttpUrl("");
-    setHttpMethod("POST");
     setBodyKind("json");
     setHttpBodyJson(DEFAULT_JSON_BODY);
     setHttpBodyText("hello");
@@ -217,7 +206,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
       return buildAgentConnection(
         mode,
         httpUrl,
-        httpMethod,
         bodyKind,
         httpBodyJson,
         httpBodyText,
@@ -231,7 +219,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
   }, [
     mode,
     httpUrl,
-    httpMethod,
     bodyKind,
     httpBodyJson,
     httpBodyText,
@@ -282,7 +269,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
       const built = buildAgentConnection(
         mode,
         httpUrl,
-        httpMethod,
         bodyKind,
         httpBodyJson,
         httpBodyText,
@@ -333,7 +319,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
       ac = buildAgentConnection(
         mode,
         httpUrl,
-        httpMethod,
         bodyKind,
         httpBodyJson,
         httpBodyText,
@@ -457,7 +442,7 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
         ) : step === 1 ? (
           <div className="newSessionModal_form">
             <p className="newSessionModal_hint">
-              Set URL, HTTP method, and (for remote) whether the endpoint uses auth. Define the JSON
+              Set URL and (for remote) whether the endpoint uses auth. Define the JSON
               or text body for the test call — step 3 shows exactly what will be sent.
             </p>
             <p className="newSessionModal_hint">
@@ -516,15 +501,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
                 </p>
               ) : null}
               <label className="newSessionModal_label">
-                Method
-                <ProviderSelect
-                  ariaLabel="HTTP method"
-                  value={httpMethod}
-                  onChange={setHttpMethod}
-                  options={HTTP_METHOD_OPTIONS}
-                />
-              </label>
-              <label className="newSessionModal_label">
                 Authentication
                 <ProviderSelect
                   ariaLabel="HTTP authentication"
@@ -576,10 +552,9 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
                   value={bodyKind}
                   onChange={setBodyKind}
                   options={BODY_KIND_OPTIONS}
-                  disabled={httpMethod === "GET"}
                 />
               </label>
-              {httpMethod === "POST" && bodyKind === "json" ? (
+              {bodyKind === "json" ? (
                 <label className="newSessionModal_label">
                   JSON body (sent on test)
                   <textarea
@@ -591,7 +566,7 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
                   />
                 </label>
               ) : null}
-              {httpMethod === "POST" && bodyKind === "text" ? (
+              {bodyKind === "text" ? (
                 <label className="newSessionModal_label">
                   Text body (sent on test)
                   <input

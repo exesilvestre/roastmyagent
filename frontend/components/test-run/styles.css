@@ -999,6 +999,30 @@
   pointer-events: none;
 }
 
+.testRun_suggestionsBtn {
+  margin-top: 0.45rem;
+  border: 1px solid rgba(167, 139, 250, 0.5);
+  border-radius: var(--radius-control);
+  background: rgba(167, 139, 250, 0.12);
+  color: #ddd6fe;
+  font-size: 0.65rem;
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 0.3rem 0.52rem;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, opacity 0.12s ease;
+}
+
+.testRun_suggestionsBtn:hover {
+  background: rgba(167, 139, 250, 0.2);
+  border-color: rgba(167, 139, 250, 0.72);
+}
+
+.testRun_suggestionsBtn:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
 .testRun_modalBackdrop {
   position: fixed;
   inset: 0;

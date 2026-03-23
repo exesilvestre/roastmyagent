@@ -22,6 +22,7 @@ export function TestRunPanel({ sessionId, sessionTitle, launch }: TestRunPanelPr
   const [phase, setPhase] = useState<"running" | "done" | "error" | "no_launch">(
     launch ? "running" : "no_launch",
   );
+  const lastSavedRunId = useLiveTestRunStore((s) => s.lastSavedRunId);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [totalSteps, setTotalSteps] = useState(0);
   const [summary, setSummary] = useState<{ ok: number; fail: number } | null>(null);
@@ -208,6 +209,7 @@ export function TestRunPanel({ sessionId, sessionTitle, launch }: TestRunPanelPr
     <TestRunTimeline
       sessionId={sessionId}
       sessionTitle={sessionTitle}
+      runId={lastSavedRunId}
       totalSteps={totalSteps}
       summary={summary}
       displaySteps={displaySteps}

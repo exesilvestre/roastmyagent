@@ -14,6 +14,7 @@ from app.schemas.attack_prompts import (
     AttackPromptsSaveRequest,
     AttackTestRunRequest,
     AttackTestRunResponse,
+    AttackTestSuggestionsResponse,
     AttackTestStepResult,
     malicious_items_to_preview_response,
     rows_to_list_response,
@@ -23,6 +24,7 @@ from app.schemas.attack_test_stream import RunSavedEvent
 from app.services.attack_prompt_service.attack_prompt_service import AttackPromptService
 from app.services.attack_test_run_export import attack_test_run_to_xlsx_bytes, prompt_text_map_from_rows
 from app.services.attack_test_run_history_service import AttackTestRunHistoryService
+from app.services.attack_test_suggestions_service import AttackTestSuggestionsService
 from app.services.attack_test_service.attack_test_service import AttackTestService
 from app.schemas.session import SessionCreate, SessionOut, SessionUpdate
 from app.services.agent_connection_service.agent_connection_service import AgentConnectionService
@@ -198,6 +200,48 @@ async def run_attack_prompts_test(
     return AttackTestRunResponse(
         steps=[AttackTestStepResult(**s) for s in raw_steps],
     )
+
+
+@router.post(
+    "/{session_id}/attack-test-runs/{run_id}/steps/{step_index}/suggestions",
+    response_model=AttackTestSuggestionsResponse,
+)
+async def suggest_for_failed_step(
+    session_id: UUID,
+    run_id: UUID,
+    step_index: int,
+    db: DbSession,
+) -> AttackTestSuggestionsResponse:
+    svc = EvaluationSessionService(db)
+    row = await svc.get_session(session_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="session not found")
+
+    try:
+        suggestions = await AttackTestSuggestionsService(db).suggest_for_step(
+            session_id=session_id,
+            run_id=run_id,
+            step_index=step_index,
+        )
+    except LookupError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except NoActiveLlmProviderError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except RuntimeError as e:
+        if "FERNET_KEY" in str(e) or "not set" in str(e).lower():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="encryption key not configured",
+            ) from e
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"suggestions generation failed: {e!s}",
+        ) from e
+    return AttackTestSuggestionsResponse(suggestions=suggestions)
 
 
 @router.post("/{session_id}/attack-prompts/run/stream")

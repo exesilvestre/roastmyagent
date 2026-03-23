@@ -53,6 +53,10 @@ export type AttackTestRunApi = {
   steps: AttackTestStepApi[];
 };
 
+export type AttackTestSuggestionsResponseApi = {
+  suggestions: string;
+};
+
 /** SSE payloads: test pipeline progress only (not LLM token streaming). */
 export type AttackTestStreamEvent =
   | { event: "run_started"; totalSteps: number }

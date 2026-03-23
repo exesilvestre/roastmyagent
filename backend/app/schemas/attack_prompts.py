@@ -68,6 +68,11 @@ class AttackTestRunResponse(BaseModel):
 
     steps: list[AttackTestStepResult]
 
+class AttackTestSuggestionsResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    suggestions: str
+
 
 def rows_to_list_response(rows: list[SessionAttackPrompt]) -> AttackPromptsListResponse:
     return AttackPromptsListResponse(

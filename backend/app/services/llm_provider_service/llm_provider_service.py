@@ -59,9 +59,13 @@ class LlmProviderService:
 
     async def list_providers(self) -> list[dict[str, Any]]:
         settings_row = await self._get_settings_row()
+        result = await self.db.execute(
+            select(LlmProviderConfig).where(LlmProviderConfig.id.in_(list(PROVIDER_ORDER)))
+        )
+        by_id = {r.id: r for r in result.scalars().all()}
         out: list[dict[str, Any]] = []
         for pid in PROVIDER_ORDER:
-            row = await self._get_provider(pid)
+            row = by_id.get(pid)
             if row is None:
                 continue
             out.append(self._row_to_public(row, settings_row.active_provider_id))

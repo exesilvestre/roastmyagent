@@ -1,5 +1,8 @@
 import { getApiBaseUrl } from "@/lib/api/client";
-import type { AttackTestStreamEvent } from "@/lib/api/types";
+import type {
+  AttackTestSuggestionsResponseApi,
+  AttackTestStreamEvent,
+} from "@/lib/api/types";
 
 async function readErrorMessage(res: Response): Promise<string> {
   const text = await res.text();
@@ -93,4 +96,22 @@ export async function postAttackTestStream(
     throw new Error("Empty response body");
   }
   await readSseJsonStream(res.body, onEvent, signal);
+}
+
+export async function postAttackSuggestions(
+  sessionId: string,
+  runId: string,
+  stepIndex: number,
+  signal?: AbortSignal,
+): Promise<AttackTestSuggestionsResponseApi> {
+  const base = getApiBaseUrl().replace(/\/$/, "");
+  const url = `${base}/api/v1/sessions/${sessionId}/attack-test-runs/${runId}/steps/${stepIndex}/suggestions`;
+  const res = await fetch(url, {
+    method: "POST",
+    signal,
+  });
+  if (!res.ok) {
+    throw new Error(await readErrorMessage(res));
+  }
+  return res.json() as Promise<AttackTestSuggestionsResponseApi>;
 }
