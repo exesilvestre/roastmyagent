@@ -205,6 +205,51 @@
   background: rgba(59, 130, 246, 0.26);
 }
 
+.attackPrompts_timeoutField {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.attackPrompts_timeoutControls {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.attackPrompts_timeoutSuffix {
+  font-size: 0.65rem;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+
+.attackPrompts_timeoutInput {
+  width: 4.5rem;
+  padding: 0.2rem 0.3rem;
+  font-size: 0.65rem;
+  color: var(--foreground);
+  background: var(--surface);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius-control);
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.attackPrompts_timeoutInput::-webkit-outer-spin-button,
+.attackPrompts_timeoutInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.attackPrompts_timeoutInput:disabled {
+  opacity: 0.6;
+}
+
+.attackPrompts_timeoutError {
+  font-size: 0.65rem;
+  color: #f87171;
+}
+
 .attackPrompts_colCheck {
   width: 2.25rem;
   text-align: center;
@@ -219,7 +264,6 @@
   height: 0.95rem;
   cursor: pointer;
 
-  /* quitar estilo nativo */
   appearance: none;
   -webkit-appearance: none;
 
@@ -231,15 +275,13 @@
   transition: all 0.15s ease;
 }
 
-/* hover sutil */
 .attackPrompts_check:hover {
   border-color: #555;
 }
 
-/* estado checked */
 .attackPrompts_check:checked::after {
   content: "✔";
-  color: #ffffff; /* verde */
+  color: #ffffff; 
   font-size: 0.7rem;
 
   position: absolute;
@@ -248,7 +290,6 @@
   transform: translate(-50%, -55%);
 }
 
-/* disabled */
 .attackPrompts_check:disabled {
   cursor: not-allowed;
   opacity: 0.5;
@@ -256,9 +297,8 @@
   border-color: #444;
 }
 
-/* disabled + checked */
 .attackPrompts_check:disabled:checked::after {
-  color: #16a34a;
+  color: #ffffff;
 }
 .attackPrompts_colActions {
   width: 4.75rem;

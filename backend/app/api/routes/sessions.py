@@ -185,6 +185,7 @@ async def run_attack_prompts_test(
             session_id,
             body.prompt_ids,
             body.delay_seconds,
+            body.agent_timeout_seconds,
             llm,
         )
     except ValueError as e:
@@ -285,6 +286,7 @@ async def run_attack_prompts_test_stream(
             session_id,
             body.prompt_ids,
             body.delay_seconds,
+            body.agent_timeout_seconds,
             llm,
         ):
             collected.append(ev)

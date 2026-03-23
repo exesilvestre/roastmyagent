@@ -145,7 +145,11 @@ export function TestRunPanel({ sessionId, sessionTitle, launch }: TestRunPanelPr
       try {
         await postAttackTestStream(
           sessionId,
-          { promptIds: launch.promptIds, delaySeconds: launch.delaySeconds },
+          {
+            promptIds: launch.promptIds,
+            delaySeconds: launch.delaySeconds,
+            agentTimeoutSeconds: launch.agentTimeoutSeconds,
+          },
           (ev) => {
             applyEvent(ev);
           },

@@ -105,8 +105,10 @@ def get_http_method(settings: dict[str, Any]) -> str:
     return method
 
 
-def get_http_timeout() -> httpx.Timeout:
-    return httpx.Timeout(DEFAULT_TIMEOUT)
+def get_http_timeout(timeout_seconds: float | None = DEFAULT_TIMEOUT) -> httpx.Timeout | None:
+    if timeout_seconds is None:
+        return None
+    return httpx.Timeout(timeout_seconds)
 
 
 def normalize_agent_url(url: str) -> str:
@@ -157,6 +159,7 @@ async def execute_http_with_settings(
     post_body: Tuple[bytes, str] | None = None,
     include_response_preview: bool = False,
     connection_kind: str | None = None,
+    timeout_seconds: float | None = DEFAULT_TIMEOUT,
 ) -> dict[str, Any]:
     """
     Single HTTP request using agent connection settings (same behavior as connection test).
@@ -175,7 +178,7 @@ async def execute_http_with_settings(
     except ValueError as e:
         return {"ok": False, "detail": str(e)}
 
-    timeout = get_http_timeout()
+    timeout = get_http_timeout(timeout_seconds)
 
     try:
         async with httpx.AsyncClient(timeout=timeout, auth=auth) as client:

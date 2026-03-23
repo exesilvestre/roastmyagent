@@ -13,6 +13,7 @@ export type TestRunLaunchPayload = {
   sessionId: string;
   promptIds: string[];
   delaySeconds: number;
+  agentTimeoutSeconds: number | null;
   /** Same length and order as `promptIds` when set from Prompts UI. */
   plannedPrompts?: PlannedPromptMeta[];
 };
@@ -26,6 +27,7 @@ export function persistTestRunLaunchToSessionStorage(payload: TestRunLaunchPaylo
       JSON.stringify({
         promptIds: payload.promptIds,
         delaySeconds: payload.delaySeconds,
+        agentTimeoutSeconds: payload.agentTimeoutSeconds,
         plannedPrompts: payload.plannedPrompts,
       }),
     );
@@ -55,12 +57,17 @@ export function consumeTestRunLaunchFromSessionStorage(
     const parsed = JSON.parse(raw) as {
       promptIds: string[];
       delaySeconds: number;
+      agentTimeoutSeconds?: number | null;
       plannedPrompts?: PlannedPromptMeta[];
     };
     return {
       sessionId,
       promptIds: parsed.promptIds,
       delaySeconds: parsed.delaySeconds,
+      agentTimeoutSeconds:
+        parsed.agentTimeoutSeconds === null || typeof parsed.agentTimeoutSeconds === "number"
+          ? parsed.agentTimeoutSeconds
+          : 20,
       plannedPrompts: parsed.plannedPrompts,
     };
   } catch {

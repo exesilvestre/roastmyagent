@@ -74,7 +74,7 @@ async function readSseJsonStream(
 
 export async function postAttackTestStream(
   sessionId: string,
-  body: { promptIds: string[]; delaySeconds: number },
+  body: { promptIds: string[]; delaySeconds: number; agentTimeoutSeconds: number | null },
   onEvent: (ev: AttackTestStreamEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
@@ -86,6 +86,7 @@ export async function postAttackTestStream(
     body: JSON.stringify({
       promptIds: body.promptIds,
       delaySeconds: body.delaySeconds,
+      agentTimeoutSeconds: body.agentTimeoutSeconds,
     }),
     signal,
   });
