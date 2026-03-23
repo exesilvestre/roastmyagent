@@ -16,6 +16,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "RoastMyAgent",
   description: "Stress-test AI agents with adversarial inputs and analyze behavior.",
+  icons: {
+    icon: "/head.png",
+    shortcut: "/head.png",
+    apple: "/head.png",
+  },
 };
 
 export default function RootLayout({
