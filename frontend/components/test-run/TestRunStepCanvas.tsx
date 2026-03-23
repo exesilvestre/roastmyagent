@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { TestRunTextModal } from "@/components/test-run/TestRunTextModal";
+import { TestRunTextModal, type TestRunModalSection } from "@/components/test-run/TestRunTextModal";
+import { formatConstraintBrief } from "@/lib/test-run/formatConstraintBrief";
 import type { RunStepRow } from "@/lib/test-run/types";
 import { getStepPipelinePhase } from "@/lib/test-run/stepPipelineStatus";
 
@@ -26,7 +27,21 @@ type TestRunStepCanvasProps = {
   live: RunStepRow | undefined;
 };
 
-type TextModalState = { title: string; body: string } | null;
+type TextModalState = {
+  title: string;
+  body: string;
+  sections?: TestRunModalSection[];
+} | null;
+
+function validationBriefBody(judge: NonNullable<RunStepRow["judge"]>): string | null {
+  const d = judge.judgeConstraintSummary;
+  if (d && typeof d === "object" && Object.keys(d).length > 0) {
+    const t = formatConstraintBrief(d).trim();
+    return t || null;
+  }
+  const legacy = judge.constraintSummary?.trim();
+  return legacy || null;
+}
 
 export function TestRunStepCanvas({ step, live }: TestRunStepCanvasProps) {
   const [textModal, setTextModal] = useState<TextModalState>(null);
@@ -56,6 +71,7 @@ export function TestRunStepCanvas({ step, live }: TestRunStepCanvasProps) {
         open={textModal !== null}
         title={textModal?.title ?? ""}
         body={textModal?.body ?? ""}
+        sections={textModal?.sections}
         onClose={() => setTextModal(null)}
       />
       <div className="testRun_canvasHead">
@@ -147,30 +163,43 @@ export function TestRunStepCanvas({ step, live }: TestRunStepCanvasProps) {
                       </span>
                     ) : null}
                   </div>
-                  {step.judge.constraintSummary ? (
+                  {step.judge.reasoning?.trim() || validationBriefBody(step.judge) ? (
                     <button
                       type="button"
                       className="testRun_reasoningHit appScroll"
-                      onClick={() =>
+                      onClick={() => {
+                        const j = step.judge!;
+                        const sections: TestRunModalSection[] = [];
+                        const brief = validationBriefBody(j);
+                        if (brief) {
+                          sections.push({
+                            title: "What we validate",
+                            body: brief,
+                          });
+                        }
+                        if (j.reasoning?.trim()) {
+                          sections.push({
+                            title: "Judge reasoning",
+                            body: j.reasoning.trim(),
+                          });
+                        }
+                        if (sections.length === 0) {
+                          return;
+                        }
                         setTextModal({
-                          title: "Constraint brief",
-                          body: step.judge!.constraintSummary!,
-                        })
-                      }
+                          title: "Judge",
+                          body: "",
+                          sections,
+                        });
+                      }}
                     >
-                      <p className="testRun_reasoningInner">{step.judge.constraintSummary}</p>
-                      <span className="testRun_previewHint">Click to expand</span>
-                    </button>
-                  ) : null}
-                  {step.judge.reasoning ? (
-                    <button
-                      type="button"
-                      className="testRun_reasoningHit appScroll"
-                      onClick={() =>
-                        setTextModal({ title: "Judge reasoning", body: step.judge!.reasoning! })
-                      }
-                    >
-                      <p className="testRun_reasoningInner">{step.judge.reasoning}</p>
+                      {step.judge.reasoning?.trim() ? (
+                        <p className="testRun_reasoningInner">{step.judge.reasoning}</p>
+                      ) : (
+                        <p className="testRun_reasoningInner testRun_judgeDetailsPlaceholder">
+                          Validation summary (open to read)
+                        </p>
+                      )}
                       <span className="testRun_previewHint">Click to expand</span>
                     </button>
                   ) : null}

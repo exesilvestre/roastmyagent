@@ -9,16 +9,34 @@ from app.models.session_attack_test_run import SessionAttackTestRun
 from .fold_events import fold_attack_test_events
 
 
+def _format_constraint_dict(d: dict[str, Any]) -> str:
+    vg = str(d.get("validation_goal") or "")
+    ec = str(d.get("expected_constraints") or "")
+    fe = str(d.get("failure_evidence") or "")
+    return (
+        f"Validation goal:\n{vg}\n\n"
+        f"Expected constraints:\n{ec}\n\n"
+        f"Failure evidence (for this probe):\n{fe}"
+    )
+
+
 def _judge_cell(jg: dict[str, Any]) -> str:
     if not jg:
         return ""
     err = jg.get("error")
     if err:
         return str(err)
-    brief = jg.get("constraintSummary") if jg.get("constraintSummary") is not None else jg.get(
-        "constraint_summary",
+    cs = jg.get("judgeConstraintSummary") if jg.get("judgeConstraintSummary") is not None else jg.get(
+        "judge_constraint_summary",
     )
-    brief_s = str(brief).strip() if brief else ""
+    brief_s = ""
+    if isinstance(cs, dict) and cs:
+        brief_s = _format_constraint_dict(cs).strip()
+    else:
+        brief = jg.get("constraintSummary") if jg.get("constraintSummary") is not None else jg.get(
+            "constraint_summary",
+        )
+        brief_s = str(brief).strip() if brief else ""
     v = jg.get("verdict")
     s = jg.get("score")
     top = ""

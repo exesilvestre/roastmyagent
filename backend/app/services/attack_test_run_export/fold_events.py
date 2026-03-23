@@ -61,6 +61,9 @@ def fold_attack_test_events(events: list[dict[str, Any]]) -> FoldedTestRunState:
                     "reasoning": ev.get("reasoning"),
                     "failed": bool(ev.get("failed", False)),
                     "error": ev.get("error"),
+                    "judgeConstraintSummary": ev.get("judgeConstraintSummary")
+                    if ev.get("judgeConstraintSummary") is not None
+                    else ev.get("judge_constraint_summary"),
                     "constraintSummary": ev.get("constraintSummary")
                     if ev.get("constraintSummary") is not None
                     else ev.get("constraint_summary"),
