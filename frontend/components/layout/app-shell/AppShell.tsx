@@ -9,8 +9,7 @@ import { useLlmProviderStore } from "@/lib/stores/llm-provider-store";
 import { useSessionStore } from "@/lib/stores/session-store";
 import type { AppShellProps } from "./types";
 import "./styles.css";
-
-const AGENT_DESC_PREVIEW_LEN = 300;
+import { AGENT_DESC_PREVIEW_LEN } from "./constants";
 
 function truncateAgentDescription(text: string, max = AGENT_DESC_PREVIEW_LEN): string {
   const t = text.trim();
@@ -125,3 +124,6 @@ export function AppShell({
     </div>
   );
 }
+
+
+// reviewed

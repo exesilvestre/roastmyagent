@@ -1,33 +1,45 @@
 "use client";
 
-import { useState } from "react";
+import { Provider, useState } from "react";
 import { ProviderConfigModal } from "@/components/layout/provider-config-modal";
 import { useLlmProviderStore } from "@/lib/stores/llm-provider-store";
-import type { AppHeaderProps } from "./types";
+import type { AppHeaderProps, ApiLlmProvider } from "./types";
 import "./styles.css";
+
+function getProviderDisplay(active?: ApiLlmProvider) {
+  if (!active) {
+    return {
+      label: "No active LLM provider",
+      tooltip: "Choose a provider in LLM settings",
+    };
+  }
+
+  return {
+    label: `${active.label} · ${active.model ?? "-"}`,
+    tooltip: `${active.label} · ${active.model ?? ""}`,
+  };
+}
 
 export function AppHeader({ className = "" }: AppHeaderProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const providers = useLlmProviderStore((s) => s.providers);
-  const active = providers.find((p) => p.isActive);
+  const active = useLlmProviderStore((s) =>
+    s.providers.find((p) => p.isActive)
+  );
+
+  const { label, tooltip } = getProviderDisplay(active as ApiLlmProvider);
+
 
   return (
     <>
       <header className={`appHeader ${className}`.trim()} role="banner">
         <span className="appHeader_title">RoastMyAgent</span>
         <div className="appHeader_right">
-          <span
-            className="appHeader_hint"
-            title={
-              active
-                ? `${active.label} · ${active.model ?? ""}`
-                : "Choose a provider in LLM settings"
-            }
-          >
-            {active
-              ? `${active.label} · ${active.model ?? "-"}`
-              : "No active LLM provider"}
-          </span>
+        <span
+          className="appHeader_hint"
+          title={tooltip}
+        >
+          {label}
+        </span>
           <button
             type="button"
             className="appHeader_button"
@@ -41,3 +53,6 @@ export function AppHeader({ className = "" }: AppHeaderProps) {
     </>
   );
 }
+
+
+// reviewed

@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, status
 from app.api.deps import DbSession
 from app.core.config import settings
 from app.schemas.llm_provider import LlmProviderOut, LlmProviderUpdate, OllamaHealthOut
+from app.services.llm_invocation_service.llm_invocation_service import ProviderPingError
 from app.services.llm_provider_service.llm_provider_service import LlmProviderService
 
 router = APIRouter()
@@ -58,7 +59,13 @@ async def update_llm_provider(
 @router.post("/{provider_id}/activate", status_code=status.HTTP_204_NO_CONTENT)
 async def activate_llm_provider(provider_id: str, db: DbSession) -> None:
     service = LlmProviderService(db)
-    ok = await service.activate_provider(provider_id)
+    try:
+        ok = await service.activate_provider(provider_id)
+    except ProviderPingError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(e),
+        ) from e
     if not ok:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
