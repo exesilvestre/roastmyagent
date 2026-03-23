@@ -90,6 +90,7 @@ class AttackTestService:
         row: SessionAgentConnection,
         prompt_text: str,
         secret: str | None,
+        agent_timeout_seconds: int | None,
     ) -> dict[str, Any]:
         settings = dict(row.settings or {})
 
@@ -109,6 +110,7 @@ class AttackTestService:
             post_body=post_body,
             include_response_preview=True,
             connection_kind=row.connection_kind,
+            timeout_seconds=agent_timeout_seconds,
         )
         return {
             "ok": bool(result.get("ok")),
@@ -183,6 +185,7 @@ class AttackTestService:
         session_id: UUID,
         prompt_ids: list[UUID],
         delay_seconds: int,
+        agent_timeout_seconds: int | None,
         llm: BaseChatModel,
     ) -> list[dict[str, Any]]:
         prompts = await self._load_prompts_ordered(session_id, prompt_ids)
@@ -191,7 +194,7 @@ class AttackTestService:
 
         steps: list[dict[str, Any]] = []
         for i, p in enumerate(prompts):
-            http = await self._http_post_prompt(conn, p.prompt_text, secret)
+            http = await self._http_post_prompt(conn, p.prompt_text, secret, agent_timeout_seconds)
             judge = await self._judge_step(
                 llm,
                 p,
@@ -209,6 +212,7 @@ class AttackTestService:
         session_id: UUID,
         prompt_ids: list[UUID],
         delay_seconds: int,
+        agent_timeout_seconds: int | None,
         llm: BaseChatModel,
     ) -> AsyncIterator[dict[str, Any]]:
         """Yield progress events for SSE (test pipeline stages, not LLM token streaming)."""
@@ -240,7 +244,7 @@ class AttackTestService:
                 intent=p.intent,
             ).model_dump(mode="json", by_alias=True)
 
-            http = await self._http_post_prompt(conn, p.prompt_text, secret)
+            http = await self._http_post_prompt(conn, p.prompt_text, secret, agent_timeout_seconds)
             preview = http.get("response_preview") if isinstance(http.get("response_preview"), str) else None
 
             yield AgentFinishedEvent(

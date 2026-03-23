@@ -26,6 +26,8 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
   const [rows, setRows] = useState<AttackPromptItemApi[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
   const [delaySeconds, setDelaySeconds] = useState<(typeof DELAY_OPTIONS)[number]>(10);
+  const [timeoutMode, setTimeoutMode] = useState<"seconds" | "none">("seconds");
+  const [timeoutSecondsInput, setTimeoutSecondsInput] = useState("20");
   const [loadingList, setLoadingList] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -209,11 +211,23 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
       appToast.error("Select at least one prompt.");
       return;
     }
+    const parsedTimeout = Number.parseInt(timeoutSecondsInput, 10);
+    const timeoutSeconds =
+      timeoutMode === "none"
+        ? null
+        : Number.isFinite(parsedTimeout) && parsedTimeout >= 1 && parsedTimeout <= 600
+          ? parsedTimeout
+          : null;
+    if (timeoutMode === "seconds" && timeoutSeconds === null) {
+      appToast.error("Agent timeout must be a number between 1 and 600 seconds.");
+      return;
+    }
     setActionError(null);
     const payload = {
       sessionId,
       promptIds: chosen.map((r) => r.id),
       delaySeconds,
+      agentTimeoutSeconds: timeoutSeconds,
       plannedPrompts: chosen.map((r) => ({
         id: r.id,
         category: r.category,
@@ -239,12 +253,29 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
     setActionError(null);
   };
 
+  const handleTimeoutInputChange = (value: string) => {
+    const trimmed = value.trim();
+    setTimeoutSecondsInput(value);
+    if (trimmed === "0") {
+      setTimeoutMode("none");
+    } else if (timeoutMode === "none") {
+      setTimeoutMode("seconds");
+    }
+  };
+
   const busy = generating || saving;
+  const parsedTimeoutForUi = Number.parseInt(timeoutSecondsInput, 10);
+  const isTimeoutValid =
+    timeoutMode === "none" ||
+    (Number.isFinite(parsedTimeoutForUi) &&
+      parsedTimeoutForUi >= 1 &&
+      parsedTimeoutForUi <= 600);
   const canRunTest =
     !loadingList &&
     rows.length > 0 &&
     !dirty &&
     selectedIds.size > 0 &&
+    isTimeoutValid &&
     !generating &&
     !saving;
 
@@ -334,8 +365,71 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
               </button>
             ))}
           </div>
+          <div className="attackPrompts_timeoutControls">
+            <span className="attackPrompts_testingLabel" id="attack-timeout-label">
+              Agent request timeout
+            </span>
+            <div
+              className="attackPrompts_segmented"
+              role="group"
+              aria-labelledby="attack-timeout-label"
+            >
+              <button
+                type="button"
+                className={
+                  timeoutMode === "seconds"
+                    ? "attackPrompts_segmentedBtn attackPrompts_segmentedBtnActive"
+                    : "attackPrompts_segmentedBtn"
+                }
+                aria-pressed={timeoutMode === "seconds"}
+                disabled={busy || loadingList}
+                onClick={() => {
+                  setTimeoutMode("seconds");
+                  if (timeoutSecondsInput.trim() === "0") {
+                    setTimeoutSecondsInput("20");
+                  }
+                }}
+              >
+                Timeout
+              </button>
+              <button
+                type="button"
+                className={
+                  timeoutMode === "none"
+                    ? "attackPrompts_segmentedBtn attackPrompts_segmentedBtnActive"
+                    : "attackPrompts_segmentedBtn"
+                }
+                aria-pressed={timeoutMode === "none"}
+                disabled={busy || loadingList}
+                onClick={() => setTimeoutMode("none")}
+              >
+                No timeout
+              </button>
+            </div>
+            <label className="attackPrompts_timeoutField" htmlFor="attack-timeout-seconds">
+              <span className="attackPrompts_timeoutSuffix">seconds</span>
+              <input
+                id="attack-timeout-seconds"
+                type="number"
+                min={0}
+                max={600}
+                step={1}
+                inputMode="numeric"
+                className="attackPrompts_timeoutInput"
+                value={timeoutSecondsInput}
+                disabled={busy || loadingList}
+                aria-invalid={!isTimeoutValid}
+                onChange={(e) => handleTimeoutInputChange(e.target.value)}
+              />
+            </label>
+          </div>
+          {!isTimeoutValid ? (
+            <span className="attackPrompts_timeoutError">Use a value between 1 and 600.</span>
+          ) : null}
         </div>
-        <div className="attackPrompts_testingBar_right">
+        
+      </div>
+      <div className="attackPrompts_testingBar_right">
           <button
             type="button"
             className="attackPrompts_btn attackPrompts_btnSecondary"
@@ -360,8 +454,6 @@ export function AttackPromptsPanel({ sessionId }: AttackPromptsPanelProps) {
             Start testing
           </button>
         </div>
-      </div>
-
       {loadError ? <p className="attackPrompts_error">{loadError}</p> : null}
       {actionError ? <p className="attackPrompts_error">{actionError}</p> : null}
       {dirty ? (

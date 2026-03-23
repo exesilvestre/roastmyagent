@@ -2,7 +2,7 @@ import uuid
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 from app.agents.attacker.schemas import MaliciousPromptItem
@@ -43,6 +43,7 @@ class AttackTestRunRequest(BaseModel):
 
     prompt_ids: list[UUID]
     delay_seconds: Literal[5, 10, 20]
+    agent_timeout_seconds: int | None = Field(default=20, ge=1, le=600)
 
 
 class AttackTestStepResult(BaseModel):
@@ -67,6 +68,11 @@ class AttackTestRunResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
 
     steps: list[AttackTestStepResult]
+
+class AttackTestSuggestionsResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+
+    suggestions: str
 
 
 def rows_to_list_response(rows: list[SessionAttackPrompt]) -> AttackPromptsListResponse:

@@ -1,5 +1,4 @@
 from datetime import datetime
-from typing import Literal
 
 from uuid import UUID
 
@@ -22,7 +21,6 @@ class SessionUpdate(BaseModel):
 
     title: str | None = Field(default=None, min_length=1, max_length=512)
     agent_description: str | None = Field(default=None)
-    status: Literal["COMPLETED", "RUNNING", "DRAFT"] | None = None
 
 
 class SessionOut(BaseModel):
@@ -35,7 +33,6 @@ class SessionOut(BaseModel):
     id: UUID
     title: str
     agent_description: str | None
-    status: str
     created_at: datetime
     updated_at: datetime
     agent_connection: AgentConnectionPublic | None = None

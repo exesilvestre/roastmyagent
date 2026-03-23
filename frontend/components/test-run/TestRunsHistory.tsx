@@ -174,6 +174,7 @@ export function TestRunsHistory({ sessionId, sessionTitle }: TestRunsHistoryProp
             <TestRunTimeline
               sessionId={sessionId}
               sessionTitle={sessionTitle}
+              runId={runFromUrl}
               totalSteps={folded.totalSteps}
               summary={folded.summary}
               displaySteps={displaySteps}

@@ -1,11 +1,9 @@
 import type { AgentConnectionKind } from "@/lib/types/agent-connection";
-import type { SessionStatus } from "@/lib/types/session";
 
 export type SessionApi = {
   id: string;
   title: string;
   agentDescription: string | null;
-  status: SessionStatus;
   createdAt: string;
   updatedAt: string;
   agentConnection: {
@@ -51,6 +49,10 @@ export type AttackTestStepApi = {
 
 export type AttackTestRunApi = {
   steps: AttackTestStepApi[];
+};
+
+export type AttackTestSuggestionsResponseApi = {
+  suggestions: string;
 };
 
 /** SSE payloads: test pipeline progress only (not LLM token streaming). */

@@ -2,14 +2,13 @@ import { create } from "zustand";
 import { apiFetch } from "@/lib/api/client";
 import type { SessionApi } from "@/lib/api/types";
 import type { AgentConnectionKind } from "@/lib/types/agent-connection";
-import { Session, SessionStatus } from "@/lib/types/session";
+import type { Session } from "@/lib/types/session";
 
 function mapSession(row: SessionApi): Session {
   return {
     id: row.id,
     title: row.title,
     agentDescription: row.agentDescription ?? null,
-    status: row.status as SessionStatus,
     updatedAt: row.updatedAt,
     agentConnection: row.agentConnection
       ? {

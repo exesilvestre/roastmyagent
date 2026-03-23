@@ -17,6 +17,7 @@ export type { RunStepRow };
 type TestRunTimelineProps = {
   sessionTitle: string | null;
   sessionId: string;
+  runId?: string | null;
   totalSteps: number;
   summary: { ok: number; fail: number } | null;
   displaySteps: RunStepRow[];
@@ -31,6 +32,7 @@ type TestRunTimelineProps = {
 export function TestRunTimeline({
   sessionTitle,
   sessionId,
+  runId,
   totalSteps,
   summary,
   displaySteps,
@@ -155,7 +157,12 @@ export function TestRunTimeline({
             onSelectIndex={setSelectedIndex}
           />
           <div className="testRun_canvasWrap testRun_canvasWrapFull">
-            <TestRunStepCanvas step={selectedStep} live={selectedLive} />
+            <TestRunStepCanvas
+              sessionId={sessionId}
+              runId={runId ?? null}
+              step={selectedStep}
+              live={selectedLive}
+            />
           </div>
         </div>
       ) : null}

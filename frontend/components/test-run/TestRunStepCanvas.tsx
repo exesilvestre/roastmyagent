@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { TestRunTextModal, type TestRunModalSection } from "@/components/test-run/TestRunTextModal";
+import { postAttackSuggestions } from "@/lib/api/attackTestStream";
 import { formatConstraintBrief } from "@/lib/test-run/formatConstraintBrief";
 import type { RunStepRow } from "@/lib/test-run/types";
 import { getStepPipelinePhase } from "@/lib/test-run/stepPipelineStatus";
@@ -23,6 +24,8 @@ function verdictClass(verdict: string | null | undefined): string {
 }
 
 type TestRunStepCanvasProps = {
+  sessionId: string;
+  runId: string | null;
   step: RunStepRow | undefined;
   live: RunStepRow | undefined;
 };
@@ -43,8 +46,9 @@ function validationBriefBody(judge: NonNullable<RunStepRow["judge"]>): string | 
   return legacy || null;
 }
 
-export function TestRunStepCanvas({ step, live }: TestRunStepCanvasProps) {
+export function TestRunStepCanvas({ sessionId, runId, step, live }: TestRunStepCanvasProps) {
   const [textModal, setTextModal] = useState<TextModalState>(null);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
 
   if (!step) {
     return (
@@ -201,6 +205,45 @@ export function TestRunStepCanvas({ step, live }: TestRunStepCanvasProps) {
                         </p>
                       )}
                       <span className="testRun_previewHint">Click to expand</span>
+                    </button>
+                  ) : null}
+                  {step.judge.verdict === "vulnerable" ? (
+                    <button
+                      type="button"
+                      className="testRun_suggestionsBtn"
+                      disabled={isLoadingSuggestions || !runId}
+                      onClick={async () => {
+                        if (!runId) {
+                          setTextModal({
+                            title: "Security suggestions",
+                            body: "Finish saving the test run first, then try again.",
+                          });
+                          return;
+                        }
+                        setIsLoadingSuggestions(true);
+                        setTextModal({
+                          title: "Security suggestions",
+                          body: "Loading suggestions...",
+                        });
+                        try {
+                          const data = await postAttackSuggestions(sessionId, runId, step.index);
+                          setTextModal({
+                            title: "Security suggestions",
+                            body: data.suggestions || "No suggestions generated.",
+                          });
+                        } catch (error) {
+                          const message =
+                            error instanceof Error ? error.message : "Failed to load suggestions.";
+                          setTextModal({
+                            title: "Security suggestions",
+                            body: message,
+                          });
+                        } finally {
+                          setIsLoadingSuggestions(false);
+                        }
+                      }}
+                    >
+                      {isLoadingSuggestions ? "Loading..." : "Request suggestions"}
                     </button>
                   ) : null}
                 </>
