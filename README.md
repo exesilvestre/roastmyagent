@@ -8,6 +8,8 @@ Open-source, local-first tool to **stress-test AI agents** with adversarial prom
 - Session-based workflows with config stored in your database.
 - Privacy by default: keys stay on your infrastructure.
 
+![RoastMyAgent LOGO](frontend/public/roast_my_agent.png)
+
 ## Stack
 
 | Part     | Tech                         |
