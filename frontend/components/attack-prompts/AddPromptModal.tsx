@@ -1,16 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AddPromptModalProps } from "./types";
 
-type AddPromptModalProps = {
-  open: boolean;
-  onClose: () => void;
-  onAdd: (row: {
-    category: string;
-    intent: string;
-    promptText: string;
-  }) => void;
-};
+
 
 const empty = {
   category: "",
@@ -115,3 +108,5 @@ export function AddPromptModal({ open, onClose, onAdd }: AddPromptModalProps) {
     </div>
   );
 }
+
+// review
