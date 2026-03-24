@@ -42,8 +42,7 @@ function validationBriefBody(judge: NonNullable<RunStepRow["judge"]>): string | 
     const t = formatConstraintBrief(d).trim();
     return t || null;
   }
-  const legacy = judge.constraintSummary?.trim();
-  return legacy || null;
+  return null;
 }
 
 export function TestRunStepCanvas({ sessionId, runId, step, live }: TestRunStepCanvasProps) {

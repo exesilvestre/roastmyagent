@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ProviderSelect } from "@/components/ui/provider-select/ProviderSelect";
+import { ProviderSelect } from "@/components/common/ProviderSelect";
 import { fetchOllamaHealth } from "@/lib/api/llmProviders";
 import { appToast } from "@/lib/app-toast";
 import { useLlmProviderStore } from "@/lib/stores/llm-provider-store";

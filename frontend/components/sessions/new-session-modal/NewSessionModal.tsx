@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ProviderSelect } from "@/components/ui/provider-select/ProviderSelect";
+import { ProviderSelect } from "@/components/common/ProviderSelect";
 import { apiFetch, getApiBaseUrl } from "@/lib/api/client";
 import type { AgentConnectionKind } from "@/lib/types/agent-connection";
 import { useSessionStore, type CreateSessionAgentConnection } from "@/lib/stores/session-store";
