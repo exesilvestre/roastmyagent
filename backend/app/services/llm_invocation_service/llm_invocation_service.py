@@ -1,5 +1,8 @@
+import asyncio
+
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import HumanMessage
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
@@ -12,8 +15,14 @@ from app.models.llm_provider_config import AppSettings, LlmProviderConfig
 from app.services.llm_provider_service.constants import PROVIDER_LABELS
 from app.services.llm_invocation_service.constants import OPENAI, ANTHROPIC, GEMINI, OLLAMA
 
+
+
 class NoActiveLlmProviderError(Exception):
     """No active LLM provider or provider is missing model/API key."""
+
+
+class ProviderPingError(Exception):
+    """Raised when a provider does not respond to a minimal test request before activation."""
 
 
 def _build_chat_model(provider_id: str, *, api_key: str | None, model: str) -> BaseChatModel:
@@ -68,3 +77,58 @@ class LlmInvocationService:
 
         api_key = decrypt_secret(row.encrypted_api_key)
         return _build_chat_model(active_id, api_key=api_key, model=str(row.model).strip())
+
+    async def verify_provider_responds(self, provider_id: str) -> None:
+        """
+        Send a minimal chat message to confirm credentials, model, and network work.
+        Raises ProviderPingError on failure (caller should not activate the provider).
+        """
+        if provider_id not in PROVIDER_LABELS:
+            raise ProviderPingError("Unknown provider")
+
+        result = await self.db.execute(
+            select(LlmProviderConfig).where(LlmProviderConfig.id == provider_id)
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            raise ProviderPingError("Provider configuration not found")
+
+        model_name = str(row.model).strip() if row.model else ""
+        if not model_name:
+            raise ProviderPingError("Model is not configured")
+
+        if provider_id == OLLAMA:
+            llm = _build_chat_model(OLLAMA, api_key=None, model=model_name)
+        else:
+            if not row.encrypted_api_key or not str(row.encrypted_api_key).strip():
+                raise ProviderPingError("API key is not configured")
+            api_key = decrypt_secret(row.encrypted_api_key)
+            llm = _build_chat_model(provider_id, api_key=api_key, model=model_name)
+
+        msg = HumanMessage(content=PING_PROMPT)
+        try:
+            out = await asyncio.wait_for(
+                llm.ainvoke([msg]),
+                timeout=PING_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            raise ProviderPingError(
+                "Timed out waiting for LLM response, check model name, API key, and network."
+            ) from None
+        except Exception as e:
+            raise ProviderPingError(
+                f"Provider did not respond: {e!s}"[:400],
+            ) from e
+
+        content = getattr(out, "content", None)
+        if content is None:
+            raise ProviderPingError("Empty response from provider")
+        if isinstance(content, list):
+            text = "".join(str(block) for block in content)
+        else:
+            text = str(content)
+        if not text.strip():
+            raise ProviderPingError("Empty response from provider")
+
+
+# reviewed

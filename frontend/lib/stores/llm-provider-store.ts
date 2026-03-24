@@ -12,7 +12,8 @@ type LlmProviderStore = {
     id: LlmProviderId,
     body: { apiKey?: string; model?: string },
   ) => Promise<void>;
-  activateProvider: (id: LlmProviderId) => Promise<boolean>;
+  /** POST /activate: runs a minimal LLM ping on the server; throws on failure */
+  activateProvider: (id: LlmProviderId) => Promise<void>;
 };
 
 export const useLlmProviderStore = create<LlmProviderStore>((set, get) => ({
@@ -46,14 +47,9 @@ export const useLlmProviderStore = create<LlmProviderStore>((set, get) => ({
     await get().fetchProviders();
   },
   activateProvider: async (id) => {
-    try {
-      await apiFetch<void>(`/api/v1/llm-providers/${id}/activate`, {
-        method: "POST",
-      });
-      await get().fetchProviders();
-      return true;
-    } catch {
-      return false;
-    }
+    await apiFetch<void>(`/api/v1/llm-providers/${id}/activate`, {
+      method: "POST",
+    });
+    await get().fetchProviders();
   },
 }));

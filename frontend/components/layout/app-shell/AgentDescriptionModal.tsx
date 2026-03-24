@@ -3,15 +3,10 @@
 import { useEffect, useState } from "react";
 import { appToast } from "@/lib/app-toast";
 import { useSessionStore } from "@/lib/stores/session-store";
+import { MAX_LEN } from "./constants";
+import { AgentDescriptionModalProps } from "./types";
 
-const MAX_LEN = 16000;
 
-type AgentDescriptionModalProps = {
-  open: boolean;
-  sessionId: string;
-  initialDescription: string;
-  onClose: () => void;
-};
 
 export function AgentDescriptionModal({
   open,
@@ -126,3 +121,6 @@ export function AgentDescriptionModal({
     </div>
   );
 }
+
+
+//reviewed

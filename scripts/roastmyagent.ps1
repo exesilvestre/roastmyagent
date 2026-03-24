@@ -1,4 +1,4 @@
-# RoastMyAgent CLI — prepare backend/.env (Fernet), then docker compose up --build
+# RoastMyAgent CLI: prepare backend/.env (Fernet), then docker compose up --build
 $ErrorActionPreference = "Stop"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 Set-Location $Root

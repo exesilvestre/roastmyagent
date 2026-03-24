@@ -7,7 +7,7 @@
 }
 
 /**
- * Test run / history routes: no document scroll — only inner panes scroll
+ * Test run / history routes: no document scroll, only inner panes scroll
  * (sidebar list + main test panel).
  */
 .appShell_viewportLocked {

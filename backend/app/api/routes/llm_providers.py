@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, status
 from app.api.deps import DbSession
 from app.core.config import settings
 from app.schemas.llm_provider import LlmProviderOut, LlmProviderUpdate, OllamaHealthOut
+from app.services.llm_invocation_service.llm_invocation_service import ProviderPingError
 from app.services.llm_provider_service.llm_provider_service import LlmProviderService
 
 router = APIRouter()
@@ -11,6 +12,7 @@ router = APIRouter()
 
 @router.get("/ollama/health", response_model=OllamaHealthOut)
 async def ollama_health() -> OllamaHealthOut:
+    # Route for checking the health of the Ollama server.
     base = settings.ollama_base_url.rstrip("/")
     url = f"{base}/api/tags"
     try:
@@ -23,6 +25,7 @@ async def ollama_health() -> OllamaHealthOut:
 
 @router.get("", response_model=list[LlmProviderOut])
 async def list_llm_providers(db: DbSession) -> list[LlmProviderOut]:
+    # Route for listing all the available LLM providers.
     service = LlmProviderService(db)
     rows = await service.list_providers()
     return [LlmProviderOut.model_validate(r) for r in rows]
@@ -34,6 +37,7 @@ async def update_llm_provider(
     body: LlmProviderUpdate,
     db: DbSession,
 ) -> LlmProviderOut:
+    # Route for updating the settings of a LLM provider.
     service = LlmProviderService(db)
     patch = body.model_dump(exclude_unset=True)
 
@@ -57,8 +61,15 @@ async def update_llm_provider(
 
 @router.post("/{provider_id}/activate", status_code=status.HTTP_204_NO_CONTENT)
 async def activate_llm_provider(provider_id: str, db: DbSession) -> None:
+    # Route for activating a LLM provider.
     service = LlmProviderService(db)
-    ok = await service.activate_provider(provider_id)
+    try:
+        ok = await service.activate_provider(provider_id)
+    except ProviderPingError as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=str(e),
+        ) from e
     if not ok:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
