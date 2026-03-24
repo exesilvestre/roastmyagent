@@ -5,9 +5,8 @@ from app.core.security import encrypt_secret
 from app.models.llm_provider_config import AppSettings, LlmProviderConfig
 from app.services.llm_invocation_service.llm_invocation_service import LlmInvocationService
 
-from .constants import PROVIDER_LABELS, PROVIDER_ORDER
+from .constants import PROVIDER_LABELS, PROVIDER_ORDER, PING_TIMEOUT_SECONDS, PING_PROMPT, OLLAMA_ID
 
-OLLAMA_ID = "ollama"
 
 
 class LlmProviderService:
@@ -101,9 +100,12 @@ class LlmProviderService:
         row = await self._get_provider(provider_id)
         if row is None or not self._is_ready(row):
             return False
-        # Confirm the provider answers before switching active (same path the app uses at runtime)
+        # Confirm the provider answers before switching active (same path the app uses at runtime).
         await LlmInvocationService(self.db).verify_provider_responds(provider_id)
         settings_row = await self._get_settings_row()
         settings_row.active_provider_id = provider_id
         await self.db.commit()
         return True
+
+
+# reviewed

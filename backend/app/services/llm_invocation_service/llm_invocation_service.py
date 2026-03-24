@@ -15,9 +15,6 @@ from app.models.llm_provider_config import AppSettings, LlmProviderConfig
 from app.services.llm_provider_service.constants import PROVIDER_LABELS
 from app.services.llm_invocation_service.constants import OPENAI, ANTHROPIC, GEMINI, OLLAMA
 
-PING_TIMEOUT_SECONDS = 60.0
-# Any non-empty assistant reply counts as success (models often ignore exact wording).
-PING_PROMPT = "Reply briefly to confirm this connection works (one short sentence is fine)."
 
 
 class NoActiveLlmProviderError(Exception):
@@ -132,3 +129,6 @@ class LlmInvocationService:
             text = str(content)
         if not text.strip():
             raise ProviderPingError("Empty response from provider")
+
+
+# reviewed

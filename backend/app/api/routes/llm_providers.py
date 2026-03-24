@@ -12,6 +12,7 @@ router = APIRouter()
 
 @router.get("/ollama/health", response_model=OllamaHealthOut)
 async def ollama_health() -> OllamaHealthOut:
+    # Route for checking the health of the Ollama server.
     base = settings.ollama_base_url.rstrip("/")
     url = f"{base}/api/tags"
     try:
@@ -24,6 +25,7 @@ async def ollama_health() -> OllamaHealthOut:
 
 @router.get("", response_model=list[LlmProviderOut])
 async def list_llm_providers(db: DbSession) -> list[LlmProviderOut]:
+    # Route for listing all the available LLM providers.
     service = LlmProviderService(db)
     rows = await service.list_providers()
     return [LlmProviderOut.model_validate(r) for r in rows]
@@ -35,6 +37,7 @@ async def update_llm_provider(
     body: LlmProviderUpdate,
     db: DbSession,
 ) -> LlmProviderOut:
+    # Route for updating the settings of a LLM provider.
     service = LlmProviderService(db)
     patch = body.model_dump(exclude_unset=True)
 
@@ -58,6 +61,7 @@ async def update_llm_provider(
 
 @router.post("/{provider_id}/activate", status_code=status.HTTP_204_NO_CONTENT)
 async def activate_llm_provider(provider_id: str, db: DbSession) -> None:
+    # Route for activating a LLM provider.
     service = LlmProviderService(db)
     try:
         ok = await service.activate_provider(provider_id)
