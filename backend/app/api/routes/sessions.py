@@ -146,105 +146,6 @@ async def generate_attack_prompts(session_id: UUID, db: DbSession) -> AttackProm
     return malicious_items_to_preview_response(items)
 
 
-@router.post(
-    "/{session_id}/attack-prompts/run",
-    response_model=AttackTestRunResponse,
-)
-async def run_attack_prompts_test(
-    session_id: UUID,
-    body: AttackTestRunRequest,
-    db: DbSession,
-) -> AttackTestRunResponse:
-    svc = EvaluationSessionService(db)
-    row = await svc.get_session(session_id)
-    if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="session not found")
-
-    if not body.prompt_ids:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="select at least one prompt",
-        )
-
-    try:
-        llm = await LlmInvocationService(db).get_active_chat_model()
-    except NoActiveLlmProviderError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    except RuntimeError as e:
-        if "FERNET_KEY" in str(e) or "not set" in str(e).lower():
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="encryption key not configured",
-            ) from e
-        raise
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-
-    try:
-        raw_steps = await AttackTestService(db).run(
-            session_id,
-            body.prompt_ids,
-            body.delay_seconds,
-            body.agent_timeout_seconds,
-            llm,
-        )
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-
-    events = AttackTestService.build_events_from_step_results(raw_steps)
-    await AttackTestRunHistoryService(db).save_completed_run(
-        session_id,
-        body.delay_seconds,
-        events,
-    )
-
-    return AttackTestRunResponse(
-        steps=[AttackTestStepResult(**s) for s in raw_steps],
-    )
-
-
-@router.post(
-    "/{session_id}/attack-test-runs/{run_id}/steps/{step_index}/suggestions",
-    response_model=AttackTestSuggestionsResponse,
-)
-async def suggest_for_failed_step(
-    session_id: UUID,
-    run_id: UUID,
-    step_index: int,
-    db: DbSession,
-) -> AttackTestSuggestionsResponse:
-    svc = EvaluationSessionService(db)
-    row = await svc.get_session(session_id)
-    if row is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="session not found")
-
-    try:
-        suggestions = await AttackTestSuggestionsService(db).suggest_for_step(
-            session_id=session_id,
-            run_id=run_id,
-            step_index=step_index,
-        )
-    except LookupError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
-    except NoActiveLlmProviderError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
-    except RuntimeError as e:
-        if "FERNET_KEY" in str(e) or "not set" in str(e).lower():
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="encryption key not configured",
-            ) from e
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"suggestions generation failed: {e!s}",
-        ) from e
-    return AttackTestSuggestionsResponse(suggestions=suggestions)
-
-
 @router.post("/{session_id}/attack-prompts/run/stream")
 async def run_attack_prompts_test_stream(
     session_id: UUID,
@@ -311,6 +212,48 @@ async def run_attack_prompts_test_stream(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.post(
+    "/{session_id}/attack-test-runs/{run_id}/steps/{step_index}/suggestions",
+    response_model=AttackTestSuggestionsResponse,
+)
+async def suggest_for_failed_step(
+    session_id: UUID,
+    run_id: UUID,
+    step_index: int,
+    db: DbSession,
+) -> AttackTestSuggestionsResponse:
+    svc = EvaluationSessionService(db)
+    row = await svc.get_session(session_id)
+    if row is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="session not found")
+
+    try:
+        suggestions = await AttackTestSuggestionsService(db).suggest_for_step(
+            session_id=session_id,
+            run_id=run_id,
+            step_index=step_index,
+        )
+    except LookupError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except NoActiveLlmProviderError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except RuntimeError as e:
+        if "FERNET_KEY" in str(e) or "not set" in str(e).lower():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="encryption key not configured",
+            ) from e
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"suggestions generation failed: {e!s}",
+        ) from e
+    return AttackTestSuggestionsResponse(suggestions=suggestions)
 
 
 @router.get(
@@ -395,3 +338,6 @@ async def delete_session(session_id: UUID, db: DbSession) -> Response:
     if not ok:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="session not found")
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# reviewed

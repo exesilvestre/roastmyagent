@@ -1,4 +1,4 @@
-/** Matches backend `format_constraint_brief` — full text for display (frontend truncates in CSS). */
+/** Matches backend `format_constraint_brief`, full text for display (frontend truncates in CSS). */
 export function formatConstraintBrief(fields: Record<string, string> | null | undefined): string {
   if (!fields || typeof fields !== "object") {
     return "";

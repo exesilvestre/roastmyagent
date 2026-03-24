@@ -20,7 +20,6 @@ export type RunStepRow = {
     error: string | null;
     /** Full fields from API; format for display in the UI. */
     judgeConstraintSummary?: Record<string, string> | null;
-    /** Legacy persisted runs. */
     constraintSummary?: string | null;
   };
 };

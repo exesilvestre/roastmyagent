@@ -61,7 +61,6 @@ export function foldAttackTestEvents(events: AttackTestStreamEvent[]): FoldedTes
             failed: ev.failed,
             error: ev.error,
             judgeConstraintSummary: ev.judgeConstraintSummary ?? null,
-            constraintSummary: ev.constraintSummary ?? null,
           },
         };
         break;

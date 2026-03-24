@@ -32,11 +32,6 @@ def _judge_cell(jg: dict[str, Any]) -> str:
     brief_s = ""
     if isinstance(cs, dict) and cs:
         brief_s = _format_constraint_dict(cs).strip()
-    else:
-        brief = jg.get("constraintSummary") if jg.get("constraintSummary") is not None else jg.get(
-            "constraint_summary",
-        )
-        brief_s = str(brief).strip() if brief else ""
     v = jg.get("verdict")
     s = jg.get("score")
     top = ""

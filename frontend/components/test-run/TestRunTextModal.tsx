@@ -1,19 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
+import type { TestRunTextModalProps } from "@/components/test-run/types";
 
-export type TestRunModalSection = { title: string; body: string };
-
-type TestRunTextModalProps = {
-  open: boolean;
-  onClose: () => void;
-  /** Header for the dialog */
-  title: string;
-  /** Single block (e.g. agent response) when `sections` is absent */
-  body: string;
-  /** Multiple titled blocks (e.g. judge validation brief + reasoning) */
-  sections?: TestRunModalSection[];
-};
+export type { TestRunModalSection } from "@/components/test-run/types";
 
 export function TestRunTextModal({ open, onClose, title, body, sections }: TestRunTextModalProps) {
   useEffect(() => {

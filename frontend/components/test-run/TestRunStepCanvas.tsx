@@ -1,50 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { TestRunTextModal, type TestRunModalSection } from "@/components/test-run/TestRunTextModal";
+import { TestRunTextModal } from "@/components/test-run/TestRunTextModal";
+import {
+  TEST_RUN_MODAL_TITLE_AGENT_RESPONSE,
+  TEST_RUN_MODAL_TITLE_JUDGE,
+  TEST_RUN_MODAL_TITLE_SECURITY_SUGGESTIONS,
+  TEST_RUN_PROMPT_PREVIEW_MAX_CHARS,
+} from "@/components/test-run/constants";
+import {
+  validationBriefBody,
+  verdictClass,
+} from "@/components/test-run/helpers";
+import type { TestRunModalSection, TestRunStepCanvasProps, TextModalState } from "@/components/test-run/types";
 import { postAttackSuggestions } from "@/lib/api/attackTestStream";
-import { formatConstraintBrief } from "@/lib/test-run/formatConstraintBrief";
-import type { RunStepRow } from "@/lib/test-run/types";
 import { getStepPipelinePhase } from "@/lib/test-run/stepPipelineStatus";
-
-function verdictClass(verdict: string | null | undefined): string {
-  if (!verdict) {
-    return "testRun_verdictUnknown";
-  }
-  if (verdict === "vulnerable") {
-    return "testRun_verdictBad";
-  }
-  if (verdict === "suspicious") {
-    return "testRun_verdictMid";
-  }
-  if (verdict === "safe") {
-    return "testRun_verdictGood";
-  }
-  return "testRun_verdictUnknown";
-}
-
-type TestRunStepCanvasProps = {
-  sessionId: string;
-  runId: string | null;
-  step: RunStepRow | undefined;
-  live: RunStepRow | undefined;
-};
-
-type TextModalState = {
-  title: string;
-  body: string;
-  sections?: TestRunModalSection[];
-} | null;
-
-function validationBriefBody(judge: NonNullable<RunStepRow["judge"]>): string | null {
-  const d = judge.judgeConstraintSummary;
-  if (d && typeof d === "object" && Object.keys(d).length > 0) {
-    const t = formatConstraintBrief(d).trim();
-    return t || null;
-  }
-  const legacy = judge.constraintSummary?.trim();
-  return legacy || null;
-}
 
 export function TestRunStepCanvas({ sessionId, runId, step, live }: TestRunStepCanvasProps) {
   const [textModal, setTextModal] = useState<TextModalState>(null);
@@ -84,7 +54,9 @@ export function TestRunStepCanvas({ sessionId, runId, step, live }: TestRunStepC
       </div>
       {promptLine ? (
         <p className="testRun_canvasPrompt" title={promptLine}>
-          {promptLine.length > 220 ? `${promptLine.slice(0, 217)}…` : promptLine}
+          {promptLine.length > TEST_RUN_PROMPT_PREVIEW_MAX_CHARS
+            ? `${promptLine.slice(0, TEST_RUN_PROMPT_PREVIEW_MAX_CHARS - 3)}…`
+            : promptLine}
         </p>
       ) : null}
 
@@ -125,7 +97,10 @@ export function TestRunStepCanvas({ sessionId, runId, step, live }: TestRunStepC
                   type="button"
                   className="testRun_previewHit appScroll"
                   onClick={() =>
-                    setTextModal({ title: "Agent response", body: step.agent!.responsePreview! })
+                    setTextModal({
+                      title: TEST_RUN_MODAL_TITLE_AGENT_RESPONSE,
+                      body: step.agent!.responsePreview!,
+                    })
                   }
                 >
                   <pre className="testRun_previewInner">{step.agent.responsePreview}</pre>
@@ -191,7 +166,7 @@ export function TestRunStepCanvas({ sessionId, runId, step, live }: TestRunStepC
                           return;
                         }
                         setTextModal({
-                          title: "Judge",
+                          title: TEST_RUN_MODAL_TITLE_JUDGE,
                           body: "",
                           sections,
                         });
@@ -215,27 +190,27 @@ export function TestRunStepCanvas({ sessionId, runId, step, live }: TestRunStepC
                       onClick={async () => {
                         if (!runId) {
                           setTextModal({
-                            title: "Security suggestions",
+                            title: TEST_RUN_MODAL_TITLE_SECURITY_SUGGESTIONS,
                             body: "Finish saving the test run first, then try again.",
                           });
                           return;
                         }
                         setIsLoadingSuggestions(true);
                         setTextModal({
-                          title: "Security suggestions",
+                          title: TEST_RUN_MODAL_TITLE_SECURITY_SUGGESTIONS,
                           body: "Loading suggestions...",
                         });
                         try {
                           const data = await postAttackSuggestions(sessionId, runId, step.index);
                           setTextModal({
-                            title: "Security suggestions",
+                            title: TEST_RUN_MODAL_TITLE_SECURITY_SUGGESTIONS,
                             body: data.suggestions || "No suggestions generated.",
                           });
                         } catch (error) {
                           const message =
                             error instanceof Error ? error.message : "Failed to load suggestions.";
                           setTextModal({
-                            title: "Security suggestions",
+                            title: TEST_RUN_MODAL_TITLE_SECURITY_SUGGESTIONS,
                             body: message,
                           });
                         } finally {
