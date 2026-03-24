@@ -1,33 +1,17 @@
 "use client";
 
-import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { TEST_RUN_RING_STROKE_LENGTH } from "@/components/test-run/constants";
+import { getSegmentBarClassName } from "@/components/test-run/helpers";
 import { TestRunStepStrip } from "@/components/test-run/TestRunStepStrip";
 import { TestRunStepCanvas } from "@/components/test-run/TestRunStepCanvas";
+import type { TestRunTimelineProps } from "@/components/test-run/types";
 import {
   findLiveFocusIndex,
   getStepPipelinePhase,
   getStepSegmentTone,
 } from "@/lib/test-run/stepPipelineStatus";
-import type { RunStepRow } from "@/lib/test-run/types";
 import "./styles.css";
-
-export type { RunStepRow };
-
-type TestRunTimelineProps = {
-  sessionTitle: string | null;
-  sessionId: string;
-  runId?: string | null;
-  totalSteps: number;
-  summary: { ok: number; fail: number } | null;
-  displaySteps: RunStepRow[];
-  liveByIndex: Record<number, RunStepRow | undefined>;
-  fatalError: string | null;
-  phase: "running" | "done" | "error" | "no_launch";
-  showProgressRing?: boolean;
-  /** Slimmer layout for history detail column. */
-  variant?: "page" | "embedded";
-};
 
 export function TestRunTimeline({
   sessionTitle,
@@ -83,8 +67,8 @@ export function TestRunTimeline({
           cx="18"
           cy="18"
           r="15.5"
-          strokeDasharray={97.4}
-          strokeDashoffset={97.4 * (1 - progress)}
+          strokeDasharray={TEST_RUN_RING_STROKE_LENGTH}
+          strokeDashoffset={TEST_RUN_RING_STROKE_LENGTH * (1 - progress)}
         />
       </svg>
       <span className="testRun_ringLabel">
@@ -129,16 +113,7 @@ export function TestRunTimeline({
         <div className="testRun_segBar" aria-hidden>
           {Array.from({ length: totalSteps }, (_, i) => {
             const tone = getStepSegmentTone(liveByIndex[i]);
-            const segClass =
-              tone === "pending"
-                ? "testRun_seg"
-                : tone === "neutral"
-                  ? "testRun_seg testRun_segNeutral"
-                  : tone === "low"
-                    ? "testRun_seg testRun_segScoreLow"
-                    : tone === "mid"
-                      ? "testRun_seg testRun_segScoreMid"
-                      : "testRun_seg testRun_segScoreHigh";
+            const segClass = getSegmentBarClassName(tone);
             return <span key={i} className={segClass} title={`Step ${i + 1}`} />;
           })}
         </div>

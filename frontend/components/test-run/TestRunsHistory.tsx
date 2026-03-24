@@ -8,28 +8,13 @@ import {
   fetchAttackTestRunDetail,
 } from "@/lib/api/attackTestRuns";
 import type { AttackPromptsListApi, AttackTestStreamEvent } from "@/lib/api/types";
+import { formatRunWhen } from "@/components/test-run/helpers";
+import { TestRunTimeline } from "@/components/test-run/TestRunTimeline";
+import type { TestRunDetailMeta, TestRunsHistoryProps } from "@/components/test-run/types";
 import { foldAttackTestEvents } from "@/lib/test-run/foldEvents";
 import { mergeDisplaySteps } from "@/lib/test-run/mergeDisplaySteps";
-import { TestRunTimeline } from "@/components/test-run/TestRunTimeline";
 import { appToast } from "@/lib/app-toast";
 import "./test-runs-history.css";
-
-type TestRunsHistoryProps = {
-  sessionId: string;
-  sessionTitle: string | null;
-};
-
-function formatRunWhen(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch {
-    return iso;
-  }
-}
 
 export function TestRunsHistory({ sessionId, sessionTitle }: TestRunsHistoryProps) {
   const searchParams = useSearchParams();
@@ -38,10 +23,7 @@ export function TestRunsHistory({ sessionId, sessionTitle }: TestRunsHistoryProp
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detailEvents, setDetailEvents] = useState<AttackTestStreamEvent[] | null>(null);
-  const [detailMeta, setDetailMeta] = useState<{
-    createdAt: string;
-    delaySeconds: number;
-  } | null>(null);
+  const [detailMeta, setDetailMeta] = useState<TestRunDetailMeta | null>(null);
   const [promptTextById, setPromptTextById] = useState<Record<string, string>>({});
   const [exporting, setExporting] = useState(false);
 
