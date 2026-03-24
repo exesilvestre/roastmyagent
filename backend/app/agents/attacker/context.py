@@ -18,3 +18,6 @@ def build_attacker_context(session: EvaluationSession) -> str:
     if not parts:
         return "(No agent description or connection metadata; use generic diverse probes.)"
     return "\n\n".join(parts)
+
+
+# reviewed

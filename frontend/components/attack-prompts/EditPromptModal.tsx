@@ -1,13 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { EditPromptModalProps } from "./types";
 
-type EditPromptModalProps = {
-  open: boolean;
-  initialPrompt: string;
-  onClose: () => void;
-  onSave: (prompt: string) => void;
-};
 
 export function EditPromptModal({
   open,

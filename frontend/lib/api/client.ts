@@ -70,7 +70,7 @@ function parseFilenameFromContentDisposition(
   return fallback;
 }
 
-/** GET binary response and trigger a browser download (Excel, etc.). */
+/** GET binary response and trigger a browser download (Excel file) */
 export async function downloadFileFromApi(
   path: string,
   fallbackFilename: string,

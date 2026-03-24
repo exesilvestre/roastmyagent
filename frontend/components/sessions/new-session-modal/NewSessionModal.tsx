@@ -1,162 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ProviderSelect } from "@/components/ui/provider-select/ProviderSelect";
-import { apiFetch, getApiBaseUrl } from "@/lib/api/client";
+import { apiFetch } from "@/lib/api/client";
 import type { AgentConnectionKind } from "@/lib/types/agent-connection";
 import { useSessionStore, type CreateSessionAgentConnection } from "@/lib/stores/session-store";
 import { appToast } from "@/lib/app-toast";
-import { normalizeAgentHttpUrl } from "@/lib/normalizeAgentHttpUrl";
-import type { NewSessionModalProps } from "./types";
+import { DEFAULT_JSON_BODY } from "./constants";
+import { AgentStep } from "./AgentStep";
+import { ConnectionStep } from "./ConnectionStep";
+import { ModalHeader } from "./ModalHeader";
+import { TestStep } from "./TestStep";
+import type { HttpAuth, NewSessionModalProps, VerifyResult } from "./types";
+import {
+  buildAgentConnection,
+  formatTestRequestPreview,
+  urlTargetsSameApiAsApp,
+} from "./utils";
 import "./styles.css";
-
-const CONNECTION_OPTIONS = [
-  { id: "HTTP_LOCAL", label: "HTTP local" },
-  { id: "HTTP_REMOTE_BASIC", label: "HTTP remote" },
-];
-
-const BODY_KIND_OPTIONS = [
-  { id: "json", label: "JSON" },
-  { id: "text", label: "Plain text" },
-];
-
-const HTTP_AUTH_OPTIONS = [
-  { id: "none", label: "No authentication" },
-  { id: "bearer", label: "Bearer token" },
-  { id: "basic", label: "Username & password (Basic)" },
-];
-
-type HttpAuth = "none" | "bearer" | "basic";
-
-const DEFAULT_JSON_BODY = '{\n  "message": "hello"\n}';
-
-type VerifyResult = { ok: boolean; detail?: string | null; preview?: string | null };
-
-function loopbackHost(hostname: string): string {
-  return hostname === "127.0.0.1" || hostname === "localhost" || hostname === "::1"
-    ? "loopback"
-    : hostname;
-}
-
-/** True if the URL targets the same host:port as this app's API (common mistake → 404 on /chat). */
-function urlTargetsSameApiAsApp(urlStr: string): boolean {
-  const t = urlStr.trim();
-  if (!t) {
-    return false;
-  }
-  try {
-    const u = new URL(normalizeAgentHttpUrl(t));
-    const api = new URL(getApiBaseUrl());
-    const pu = u.port || (u.protocol === "https:" ? "443" : "80");
-    const pa = api.port || (api.protocol === "https:" ? "443" : "80");
-    return loopbackHost(u.hostname) === loopbackHost(api.hostname) && pu === pa;
-  } catch {
-    return false;
-  }
-}
-
-function buildAgentConnection(
-  mode: AgentConnectionKind,
-  httpUrl: string,
-  bodyKind: string,
-  httpBodyJson: string,
-  httpBodyText: string,
-  httpAuth: HttpAuth,
-  basicUser: string,
-  httpSecret: string,
-): CreateSessionAgentConnection {
-  const bodyContent = bodyKind === "json" ? httpBodyJson : httpBodyText;
-
-  if (mode === "HTTP_LOCAL") {
-    const settings: Record<string, unknown> = {
-      url: normalizeAgentHttpUrl(httpUrl),
-      httpMethod: "POST",
-      bodyKind,
-      bodyContent,
-      authType: httpAuth,
-    };
-    if (httpAuth === "basic") {
-      settings.username = basicUser.trim();
-    }
-    const sec =
-      httpAuth === "bearer" || httpAuth === "basic" ? httpSecret.trim() : "";
-    return {
-      connectionKind: "HTTP_LOCAL",
-      settings,
-      ...(sec ? { secret: sec } : {}),
-    };
-  }
-
-  const settings: Record<string, unknown> = {
-    url: normalizeAgentHttpUrl(httpUrl),
-    httpMethod: "POST",
-    bodyKind,
-    bodyContent,
-    authType: httpAuth,
-  };
-  if (httpAuth === "basic") {
-    settings.username = basicUser.trim();
-  }
-
-  const secretRemote =
-    httpAuth === "bearer" || httpAuth === "basic" ? httpSecret.trim() : "";
-
-  return {
-    connectionKind: "HTTP_REMOTE_BASIC",
-    settings,
-    ...(secretRemote ? { secret: secretRemote } : {}),
-  };
-}
-
-function formatTestRequestPreview(
-  payload: CreateSessionAgentConnection | undefined,
-): string {
-  if (!payload) {
-    return "";
-  }
-  const s = payload.settings as Record<string, unknown>;
-  const url = String(s.url || "").trim() || "(no URL)";
-  const isHttp =
-    payload.connectionKind === "HTTP_REMOTE_BASIC" ||
-    payload.connectionKind === "HTTP_LOCAL";
-  const authType = String(s.authType || "none").toLowerCase();
-  const authLines: string[] = [];
-  if (isHttp) {
-    if (authType === "none" || authType === "") {
-      authLines.push("Authentication: none");
-    } else if (authType === "bearer") {
-      authLines.push("Authentication: Bearer (token applied on request)");
-    } else if (authType === "basic") {
-      const u = String(s.username || "").trim();
-      authLines.push(`Authentication: Basic (user: ${u || "—"})`);
-    }
-  }
-  const bk = String(s.bodyKind || "json");
-  const raw = s.bodyContent != null ? String(s.bodyContent) : "";
-  if (bk === "text") {
-    const body = raw.trim() || "hello";
-    return [
-      "POST " + url,
-      ...authLines,
-      "Content-Type: text/plain; charset=utf-8",
-      "",
-      body,
-    ].join("\n");
-  }
-  let jsonBlock = raw.trim() || '{"message":"hello"}';
-  try {
-    jsonBlock = JSON.stringify(JSON.parse(jsonBlock), null, 2);
-  } catch {
-    // keep as typed
-  }
-  return [
-    "POST " + url,
-    ...authLines,
-    "Content-Type: application/json; charset=utf-8",
-    "",
-    jsonBlock,
-  ].join("\n");
-}
 
 export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
   const createSession = useSessionStore((s) => s.createSession);
@@ -266,7 +126,7 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
     setLocalError(null);
     let payload: CreateSessionAgentConnection;
     try {
-      const built = buildAgentConnection(
+      payload = buildAgentConnection(
         mode,
         httpUrl,
         bodyKind,
@@ -276,7 +136,6 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
         basicUser,
         httpSecret,
       );
-      payload = built;
     } catch (e) {
       setLocalError(e instanceof Error ? e.message : "Invalid connection settings");
       return;
@@ -292,7 +151,7 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
         }),
       });
       if (res.ok) {
-        setTestHint(res.preview ? `OK — ${res.preview}` : "OK");
+        setTestHint(res.preview ? `OK: ${res.preview}` : "OK");
         appToast.success("Connection OK");
       } else {
         setTestHint(res.detail || "Failed");
@@ -354,307 +213,61 @@ export function NewSessionModal({ open, onClose }: NewSessionModalProps) {
         aria-labelledby="newSessionModal_heading"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="newSessionModal_header">
-          <h2 id="newSessionModal_heading" className="newSessionModal_title">
-            New test session
-          </h2>
-          <nav className="newSessionModal_stepper" aria-label="Session steps">
-            <ol className="newSessionModal_stepperList">
-              <li
-                className={`newSessionModal_step ${step === 0 ? "newSessionModal_stepCurrent" : ""} ${step > 0 ? "newSessionModal_stepDone" : ""}`}
-                aria-current={step === 0 ? "step" : undefined}
-              >
-                <span className="newSessionModal_stepBadge" aria-hidden="true">
-                  {step > 0 ? "✓" : "1"}
-                </span>
-                <span className="newSessionModal_stepText">Agent</span>
-              </li>
-              <li className="newSessionModal_stepLine" aria-hidden="true" />
-              <li
-                className={`newSessionModal_step ${step === 1 ? "newSessionModal_stepCurrent" : ""} ${step > 1 ? "newSessionModal_stepDone" : ""}`}
-                aria-current={step === 1 ? "step" : undefined}
-              >
-                <span className="newSessionModal_stepBadge" aria-hidden="true">
-                  {step > 1 ? "✓" : "2"}
-                </span>
-                <span className="newSessionModal_stepText">Connection</span>
-              </li>
-              <li className="newSessionModal_stepLine" aria-hidden="true" />
-              <li
-                className={`newSessionModal_step ${step === 2 ? "newSessionModal_stepCurrent" : ""}`}
-                aria-current={step === 2 ? "step" : undefined}
-              >
-                <span className="newSessionModal_stepBadge" aria-hidden="true">
-                  3
-                </span>
-                <span className="newSessionModal_stepText">Test</span>
-              </li>
-            </ol>
-            <p className="newSessionModal_stepCaption">
-              {step === 0
-                ? "Step 1 of 3 — name and describe the agent."
-                : step === 1
-                  ? "Step 2 of 3 — how the API reaches the agent."
-                  : "Step 3 of 3 — verify the connection, then create the session."}
-            </p>
-          </nav>
-        </div>
+        <ModalHeader step={step} />
 
         {step === 0 ? (
-          <div className="newSessionModal_form">
-            <p className="newSessionModal_hint">
-              Name the agent and describe what it does. That context is used like a system prompt for
-              tailored adversarial tests.
-            </p>
-            <label className="newSessionModal_label">
-              Agent name
-              <input
-                className="newSessionModal_input"
-                value={title}
-                onChange={(ev) => setTitle(ev.target.value)}
-                autoComplete="off"
-                placeholder="e.g. Support triage bot"
-              />
-            </label>
-            <label className="newSessionModal_label">
-              What it does (optional)
-              <textarea
-                className="newSessionModal_textarea newSessionModal_textarea_step1"
-                value={agentDescription}
-                onChange={(ev) => setAgentDescription(ev.target.value)}
-                placeholder="System Prompt, Role, allowed tools, data it sees, boundaries…"
-              />
-            </label>
-            {localError ? (
-              <p className="newSessionModal_error" role="alert">
-                {localError}
-              </p>
-            ) : null}
-            <div className="newSessionModal_actions">
-              <button type="button" className="newSessionModal_cancel" onClick={onClose}>
-                Cancel
-              </button>
-              <button type="button" className="newSessionModal_submit" onClick={goNextAgent}>
-                Next
-              </button>
-            </div>
-          </div>
+          <AgentStep
+            title={title}
+            onTitleChange={setTitle}
+            agentDescription={agentDescription}
+            onAgentDescriptionChange={setAgentDescription}
+            localError={localError}
+            onClose={onClose}
+            onNext={goNextAgent}
+          />
         ) : step === 1 ? (
-          <div className="newSessionModal_form">
-            <p className="newSessionModal_hint">
-              Set URL and (for remote) whether the endpoint uses auth. Define the JSON
-              or text body for the test call — step 3 shows exactly what will be sent.
-            </p>
-            <p className="newSessionModal_hint">
-              Only HTTP is supported for now; other transports (for example WebSocket) may be added
-              later.
-            </p>
-
-            <div className="newSessionModal_section">
-              <label className="newSessionModal_label">
-                Connection
-                <ProviderSelect
-                  ariaLabel="Connection type"
-                  value={mode}
-                  onChange={(id) => setMode(id as AgentConnectionKind)}
-                  options={CONNECTION_OPTIONS}
-                />
-              </label>
-
-              {mode === "HTTP_LOCAL" ? (
-                <p className="newSessionModal_dockerHint">
-                  HTTP local: when the API runs in Docker,{" "}
-                  <code className="newSessionModal_code">localhost</code> /{" "}
-                  <code className="newSessionModal_code">127.0.0.1</code> /{" "}
-                  <code className="newSessionModal_code">::1</code> are rewritten to{" "}
-                  <code className="newSessionModal_code">host.docker.internal</code> on each request
-                  so the container can reach your machine. Example:{" "}
-                  <code className="newSessionModal_code">http://localhost:8001/…</code>. If the API
-                  runs on your host (not in Docker), the URL is left as you typed.
-                </p>
-              ) : (
-                <p className="newSessionModal_dockerHint">
-                  HTTP remote: the URL is used exactly as entered (no loopback rewrite).
-                </p>
-              )}
-              <label className="newSessionModal_label">
-                URL
-                <input
-                  className="newSessionModal_input"
-                  value={httpUrl}
-                  onChange={(ev) => setHttpUrl(ev.target.value)}
-                  placeholder={
-                    mode === "HTTP_LOCAL"
-                      ? "http://localhost:8001/v1/chat"
-                      : "https://api.example.com/v1/chat"
-                  }
-                  autoComplete="off"
-                />
-              </label>
-              {httpUrlSameAsApi ? (
-                <p className="newSessionModal_urlConflict" role="alert">
-                  This URL uses the same host and port as this app&apos;s API. The test request hits
-                  the RoastMyAgent server (you&apos;ll see{" "}
-                  <code className="newSessionModal_code">POST /chat</code> → 404), not your agent.
-                  Use your agent&apos;s URL on a different port (for example{" "}
-                  <code className="newSessionModal_code">http://localhost:8080/chat</code>).
-                </p>
-              ) : null}
-              <label className="newSessionModal_label">
-                Authentication
-                <ProviderSelect
-                  ariaLabel="HTTP authentication"
-                  value={httpAuth}
-                  onChange={(id) => setHttpAuth(id as HttpAuth)}
-                  options={HTTP_AUTH_OPTIONS}
-                />
-              </label>
-              {httpAuth === "bearer" ? (
-                <label className="newSessionModal_label">
-                  Bearer token
-                  <input
-                    className="newSessionModal_input"
-                    value={httpSecret}
-                    onChange={(ev) => setHttpSecret(ev.target.value)}
-                    type="password"
-                    autoComplete="off"
-                    placeholder="Token"
-                  />
-                </label>
-              ) : null}
-              {httpAuth === "basic" ? (
-                <>
-                  <label className="newSessionModal_label">
-                    Username
-                    <input
-                      className="newSessionModal_input"
-                      value={basicUser}
-                      onChange={(ev) => setBasicUser(ev.target.value)}
-                      autoComplete="off"
-                    />
-                  </label>
-                  <label className="newSessionModal_label">
-                    Password
-                    <input
-                      className="newSessionModal_input"
-                      value={httpSecret}
-                      onChange={(ev) => setHttpSecret(ev.target.value)}
-                      type="password"
-                      autoComplete="off"
-                    />
-                  </label>
-                </>
-              ) : null}
-              <label className="newSessionModal_label">
-                POST body type
-                <ProviderSelect
-                  ariaLabel="POST body type"
-                  value={bodyKind}
-                  onChange={setBodyKind}
-                  options={BODY_KIND_OPTIONS}
-                />
-              </label>
-              {bodyKind === "json" ? (
-                <label className="newSessionModal_label">
-                  JSON body (sent on test)
-                  <textarea
-                    className="newSessionModal_textarea newSessionModal_textarea_short newSessionModal_textarea_code"
-                    value={httpBodyJson}
-                    onChange={(ev) => setHttpBodyJson(ev.target.value)}
-                    placeholder={DEFAULT_JSON_BODY}
-                    spellCheck={false}
-                  />
-                </label>
-              ) : null}
-              {bodyKind === "text" ? (
-                <label className="newSessionModal_label">
-                  Text body (sent on test)
-                  <input
-                    className="newSessionModal_input"
-                    value={httpBodyText}
-                    onChange={(ev) => setHttpBodyText(ev.target.value)}
-                    placeholder="hello"
-                    autoComplete="off"
-                  />
-                </label>
-              ) : null}
-            </div>
-
-            {localError ? (
-              <p className="newSessionModal_error" role="alert">
-                {localError}
-              </p>
-            ) : null}
-            <div className="newSessionModal_actions newSessionModal_actionsStep2">
-              <button
-                type="button"
-                className="newSessionModal_cancel"
-                onClick={() => {
-                  setStep(0);
-                  setLocalError(null);
-                }}
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                className="newSessionModal_submit"
-                disabled={!connectionPayload}
-                onClick={goNextConnection}
-              >
-                Next
-              </button>
-            </div>
-          </div>
+          <ConnectionStep
+            mode={mode}
+            onModeChange={setMode}
+            httpUrl={httpUrl}
+            onHttpUrlChange={setHttpUrl}
+            bodyKind={bodyKind}
+            onBodyKindChange={setBodyKind}
+            httpBodyJson={httpBodyJson}
+            onHttpBodyJsonChange={setHttpBodyJson}
+            httpBodyText={httpBodyText}
+            onHttpBodyTextChange={setHttpBodyText}
+            httpAuth={httpAuth}
+            onHttpAuthChange={setHttpAuth}
+            basicUser={basicUser}
+            onBasicUserChange={setBasicUser}
+            httpSecret={httpSecret}
+            onHttpSecretChange={setHttpSecret}
+            httpUrlSameAsApi={httpUrlSameAsApi}
+            connectionPayload={connectionPayload}
+            localError={localError}
+            onBack={() => {
+              setStep(0);
+              setLocalError(null);
+            }}
+            onNext={goNextConnection}
+          />
         ) : (
-          <div className="newSessionModal_form">
-            <p className="newSessionModal_hint">
-              This is what will be sent for the test. Run the check below; edit connection on step 2
-              if something looks wrong.
-            </p>
-            <div className="newSessionModal_previewBlock">
-              <div className="newSessionModal_previewLabel">Request preview</div>
-              <pre className="newSessionModal_previewPre">{testRequestPreview || "—"}</pre>
-            </div>
-            <div className="newSessionModal_section newSessionModal_sectionNoBorder">
-              <div className="newSessionModal_testRow">
-                <button
-                  type="button"
-                  className="newSessionModal_test"
-                  disabled={testLoading || !connectionPayload}
-                  onClick={() => void handleTest().catch(() => {})}
-                >
-                  {testLoading ? "Testing…" : "Test connection"}
-                </button>
-                {testHint ? <p className="newSessionModal_testHint">{testHint}</p> : null}
-              </div>
-            </div>
-            {localError ? (
-              <p className="newSessionModal_error" role="alert">
-                {localError}
-              </p>
-            ) : null}
-            <div className="newSessionModal_actions newSessionModal_actionsStep2">
-              <button
-                type="button"
-                className="newSessionModal_cancel"
-                onClick={() => {
-                  setStep(1);
-                  setLocalError(null);
-                }}
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                className="newSessionModal_submit"
-                disabled={submitting || !title.trim()}
-                onClick={() => void handleCreate().catch(() => {})}
-              >
-                {submitting ? "Creating…" : "Create session"}
-              </button>
-            </div>
-          </div>
+          <TestStep
+            testRequestPreview={testRequestPreview}
+            testLoading={testLoading}
+            testHint={testHint}
+            connectionPayload={connectionPayload}
+            localError={localError}
+            titleTrimmed={!!title.trim()}
+            submitting={submitting}
+            onBack={() => {
+              setStep(1);
+              setLocalError(null);
+            }}
+            onTest={handleTest}
+            onCreate={handleCreate}
+          />
         )}
       </section>
     </div>

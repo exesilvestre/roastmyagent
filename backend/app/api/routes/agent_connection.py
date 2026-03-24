@@ -8,6 +8,7 @@ router = APIRouter()
 
 @router.post("/verify", response_model=AgentConnectionVerifyResult)
 async def verify_connection(body: AgentConnectionVerifyBody) -> AgentConnectionVerifyResult:
+    # Route for verifying connection with the agent, a dummmy message is sent to test the response.
     r = await AgentConnectionService.verify(
         body.connection_kind,
         dict(body.settings or {}),
@@ -18,3 +19,5 @@ async def verify_connection(body: AgentConnectionVerifyBody) -> AgentConnectionV
         detail=r.get("detail"),
         preview=r.get("preview"),
     )
+
+# reviewed

@@ -1,2 +1,7 @@
 export { ProviderConfigModal } from "./ProviderConfigModal";
-export type { ProviderConfigModalProps } from "./types";
+export type {
+  BusyState,
+  ProviderConfigModalProps,
+  ProviderModalErrors,
+  UpdateTarget,
+} from "./types";

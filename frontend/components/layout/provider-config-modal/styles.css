@@ -112,6 +112,50 @@
   gap: 0.35rem;
 }
 
+.providerModal_footerSaveRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
+.providerModal_footerSaveLabel {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  letter-spacing: 0.02em;
+}
+
+.providerModal_footerSegment {
+  display: inline-flex;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-strong);
+  overflow: hidden;
+  background: var(--surface-elevated);
+}
+
+.providerModal_footerSegmentBtn {
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+
+.providerModal_footerSegmentBtn:hover {
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.providerModal_footerSegmentBtn_active {
+  color: var(--foreground);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--border-bright);
+}
+
 .providerModal_footerTarget {
   margin: 0;
   font-size: 0.65rem;

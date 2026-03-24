@@ -1,18 +1,41 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ProviderSelect } from "@/components/ui/provider-select/ProviderSelect";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchOllamaHealth } from "@/lib/api/llmProviders";
 import { appToast } from "@/lib/app-toast";
 import { useLlmProviderStore } from "@/lib/stores/llm-provider-store";
 import type { CloudLlmProviderId } from "@/lib/types/llm-provider";
-import type { ProviderConfigModalProps } from "./types";
+import { CLOUD_PROVIDER_ORDER, DEFAULT_OLLAMA_MODEL } from "./constants";
+import { ActiveBanner } from "./ActiveBanner";
+import { Cloud } from "./Cloud";
+import { Footer } from "./Footer";
+import { Local } from "./Local";
+import type {
+  BusyState,
+  ProviderConfigModalProps,
+  ProviderModalErrors,
+  UpdateTarget,
+} from "./types";
 import "./styles.css";
 
-const CLOUD_PROVIDER_ORDER: CloudLlmProviderId[] = ["openai", "anthropic", "gemini"];
-const DEFAULT_OLLAMA_MODEL = "llama3";
+function isFooterBusy(busy: BusyState): boolean {
+  return busy !== "idle";
+}
 
-type UpdateTarget = "cloud" | "local";
+/** Test connection (no save): disabled while saving or pinging */
+function isTestConnectionDisabled(busy: BusyState): boolean {
+  return (
+    busy === "savingCloud" ||
+    busy === "savingLocal" ||
+    busy === "activatingLocal" ||
+    busy === "checkingPing"
+  );
+}
+
+/** Help panel retry: disabled whenever any blocking work runs */
+function isHelpRetryDisabled(busy: BusyState): boolean {
+  return busy !== "idle";
+}
 
 export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps) {
   const providers = useLlmProviderStore((s) => s.providers);
@@ -25,14 +48,14 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
   const [apiKeyDraft, setApiKeyDraft] = useState("");
   const [modelDraft, setModelDraft] = useState("");
   const [ollamaModelDraft, setOllamaModelDraft] = useState(DEFAULT_OLLAMA_MODEL);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [ollamaSaveError, setOllamaSaveError] = useState<string | null>(null);
-  const [localCtaError, setLocalCtaError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [localConnecting, setLocalConnecting] = useState(false);
-  const [ollamaPingBusy, setOllamaPingBusy] = useState(false);
+  const [errors, setErrors] = useState<ProviderModalErrors>({});
+  const [busyState, setBusyState] = useState<BusyState>("idle");
   const [localHelpVisible, setLocalHelpVisible] = useState(false);
   const [updateTarget, setUpdateTarget] = useState<UpdateTarget>("cloud");
+
+  const clearErrors = useCallback(() => {
+    setErrors({});
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -59,8 +82,7 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
     const p = providers.find((x) => x.id === selectedId);
     setModelDraft(p?.model ?? "");
     setApiKeyDraft("");
-    setSaveError(null);
-    setOllamaSaveError(null);
+    setErrors((e) => ({ ...e, cloud: undefined, localSave: undefined }));
   }, [open, selectedId, providers]);
 
   useEffect(() => {
@@ -74,7 +96,7 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
   useEffect(() => {
     if (!open) {
       setLocalHelpVisible(false);
-      setLocalCtaError(null);
+      setErrors((e) => ({ ...e, localConnect: undefined }));
     }
   }, [open]);
 
@@ -93,15 +115,8 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
 
   const isCurrentCloud = provider?.isActive ?? false;
 
-  const footerHint =
-    updateTarget === "cloud"
-      ? "Applies to the Cloud column: saves key & model and activates that vendor."
-      : isOllamaActive
-        ? "Applies to the Local column: saves the Ollama model name and verifies the API."
-        : "Applies to the Local column: checks Ollama, then activates local AI with the model below.";
-
   const footerButtonLabel =
-    saving || localConnecting
+    busyState === "savingCloud" || busyState === "savingLocal" || busyState === "activatingLocal"
       ? updateTarget === "cloud"
         ? "Updating cloud…"
         : "Updating local…"
@@ -111,129 +126,145 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
           ? "Update local (Ollama)"
           : "Activate local (Ollama)";
 
-  async function runUnifiedUpdate() {
-    setSaveError(null);
-    setOllamaSaveError(null);
-    setLocalCtaError(null);
-
-    if (updateTarget === "cloud") {
-      setSaving(true);
-      try {
-        const patch: { apiKey?: string; model?: string } = { model: modelDraft };
-        if (apiKeyDraft.trim() !== "") {
-          patch.apiKey = apiKeyDraft;
-        }
-        await patchProvider(selectedId, patch);
-        const ok = await activateProvider(selectedId);
-        if (!ok) {
-          setSaveError(
-            "Could not activate. Set model and API key (backend must have FERNET_KEY).",
-          );
-          return;
-        }
-        appToast.success("Cloud provider updated and active.");
-        onClose();
-      } catch (e) {
-        setSaveError(e instanceof Error ? e.message : "Save failed");
-        appToast.error(e instanceof Error ? e.message : "Save failed");
-      } finally {
-        setSaving(false);
-      }
-      return;
-    }
-
-    // Local
-    if (isOllamaActive) {
-      setSaving(true);
-      try {
-        await patchProvider("ollama", { model: ollamaModelDraft });
-        const ok = await activateProvider("ollama");
-        if (!ok) {
-          setOllamaSaveError("Could not save. Ensure model is set and Ollama is reachable.");
-          return;
-        }
-        const verify = await fetchOllamaHealth();
-        await fetchProviders();
-        if (verify.ok) {
-          appToast.success(`Model "${ollamaModelDraft.trim()}" saved — Ollama responded OK.`);
-        } else {
-          appToast.error(
-            "Model saved, but Ollama did not respond to a check — verify OLLAMA_BASE_URL.",
-          );
-        }
-        onClose();
-      } catch (e) {
-        setOllamaSaveError(e instanceof Error ? e.message : "Save failed");
-        appToast.error(e instanceof Error ? e.message : "Save failed");
-      } finally {
-        setSaving(false);
-      }
-      return;
-    }
-
-    // Activate local from cloud / none
-    setLocalHelpVisible(false);
-    setLocalConnecting(true);
+  const saveCloudProvider = useCallback(async () => {
+    setBusyState("savingCloud");
     try {
-      const health = await fetchOllamaHealth();
-      if (!health.ok) {
-        setLocalHelpVisible(true);
-        appToast.error("Could not reach Ollama — check it is running and OLLAMA_BASE_URL.");
-        return;
+      const patch: { apiKey?: string; model?: string } = { model: modelDraft };
+      if (apiKeyDraft.trim() !== "") {
+        patch.apiKey = apiKeyDraft;
       }
-      const model = ollamaModelDraft.trim() || DEFAULT_OLLAMA_MODEL;
-      await patchProvider("ollama", { model });
-      const ok = await activateProvider("ollama");
-      if (!ok) {
-        setLocalCtaError(
-          "Could not activate local provider. Set OLLAMA_BASE_URL if the API runs in Docker.",
-        );
-        return;
-      }
+      await patchProvider(selectedId, patch);
+      await activateProvider(selectedId);
+      appToast.success("Cloud provider updated and active.");
+      onClose();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Save failed";
+      setErrors({ cloud: msg });
+      appToast.error(msg);
+    } finally {
+      setBusyState("idle");
+    }
+  }, [activateProvider, apiKeyDraft, modelDraft, onClose, patchProvider, selectedId]);
+
+  const saveActiveLocalProvider = useCallback(async () => {
+    setBusyState("savingLocal");
+    try {
+      await patchProvider("ollama", { model: ollamaModelDraft });
+      await activateProvider("ollama");
       const verify = await fetchOllamaHealth();
       await fetchProviders();
       if (verify.ok) {
-        appToast.success(`Using Ollama · model ${model} — API responded OK.`);
+        appToast.success(`Model "${ollamaModelDraft.trim()}" saved, Ollama responded OK.`);
       } else {
         appToast.error(
-          "Ollama was activated but a follow-up check failed — verify OLLAMA_BASE_URL.",
+          "Model saved, but Ollama did not respond to a check, verify OLLAMA_BASE_URL.",
         );
       }
       onClose();
     } catch (e) {
-      setLocalCtaError(e instanceof Error ? e.message : "Local setup failed");
-      appToast.error(e instanceof Error ? e.message : "Local setup failed");
+      const msg = e instanceof Error ? e.message : "Save failed";
+      setErrors({ localSave: msg });
+      appToast.error(msg);
     } finally {
-      setLocalConnecting(false);
+      setBusyState("idle");
     }
-  }
+  }, [activateProvider, fetchProviders, ollamaModelDraft, onClose, patchProvider]);
+
+  const activateLocalFromCloudOrNone = useCallback(async () => {
+    setLocalHelpVisible(false);
+    setBusyState("activatingLocal");
+    try {
+      const health = await fetchOllamaHealth();
+      if (!health.ok) {
+        setLocalHelpVisible(true);
+        appToast.error("Could not reach Ollama, check it is running and OLLAMA_BASE_URL.");
+        return;
+      }
+      const model = ollamaModelDraft.trim() || DEFAULT_OLLAMA_MODEL;
+      await patchProvider("ollama", { model });
+      await activateProvider("ollama");
+      const verify = await fetchOllamaHealth();
+      await fetchProviders();
+      if (verify.ok) {
+        appToast.success(`Using Ollama · model ${model}, API responded OK.`);
+      } else {
+        appToast.error(
+          "Ollama was activated but a follow-up check failed, verify OLLAMA_BASE_URL.",
+        );
+      }
+      onClose();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Local setup failed";
+      setErrors({ localConnect: msg });
+      appToast.error(msg);
+    } finally {
+      setBusyState("idle");
+    }
+  }, [activateProvider, fetchProviders, ollamaModelDraft, onClose, patchProvider]);
+
+  const runUnifiedUpdate = useCallback(async () => {
+    clearErrors();
+
+    if (updateTarget === "cloud") {
+      await saveCloudProvider();
+      return;
+    }
+
+    if (isOllamaActive) {
+      await saveActiveLocalProvider();
+      return;
+    }
+
+    await activateLocalFromCloudOrNone();
+  }, [
+    activateLocalFromCloudOrNone,
+    clearErrors,
+    isOllamaActive,
+    saveActiveLocalProvider,
+    saveCloudProvider,
+    updateTarget,
+  ]);
+
+  const handleTestConnection = useCallback(() => {
+    setBusyState("checkingPing");
+    void (async () => {
+      try {
+        const h = await fetchOllamaHealth();
+        if (h.ok) {
+          appToast.success("Ollama API responded, connection OK.");
+        } else {
+          appToast.error("Ollama did not respond, check it is running and URL settings.");
+        }
+      } catch (err) {
+        appToast.error(err instanceof Error ? err.message : "Check failed");
+      } finally {
+        setBusyState("idle");
+      }
+    })();
+  }, []);
+
+  const handleRetryHelpCheck = useCallback(() => {
+    setBusyState("checkingHelpRetry");
+    void (async () => {
+      try {
+        const h = await fetchOllamaHealth();
+        if (h.ok) {
+          setLocalHelpVisible(false);
+          appToast.success("Ollama responded, try Update local again.");
+        } else {
+          appToast.error("Still can't reach Ollama.");
+        }
+      } catch (err) {
+        appToast.error(err instanceof Error ? err.message : "Check failed");
+      } finally {
+        setBusyState("idle");
+      }
+    })();
+  }, []);
 
   if (!open) {
     return null;
   }
-
-  const activeSummary =
-    active != null ? (
-      <div className="providerModal_activeBanner" role="status">
-        <span className="providerModal_activeLabel">Active now</span>
-        <span className="providerModal_activeValue">
-          {active.label}
-          {active.model ? (
-            <>
-              {" "}
-              · <span className="providerModal_activeModel">{active.model}</span>
-            </>
-          ) : null}
-        </span>
-      </div>
-    ) : (
-      <div className="providerModal_activeBanner providerModal_activeBanner_muted" role="status">
-        <span className="providerModal_activeLabel">Active now</span>
-        <span className="providerModal_activeValue">None — update cloud or local below</span>
-      </div>
-    );
-
-  const footerBusy = saving || localConnecting;
 
   return (
     <div className="providerModal_overlay" role="presentation" onClick={onClose}>
@@ -255,221 +286,67 @@ export function ProviderConfigModal({ open, onClose }: ProviderConfigModalProps)
         </div>
 
         <div className="providerModal_body">
-          {activeSummary}
+          <ActiveBanner
+            activeLabel={active?.label ?? null}
+            activeModel={active?.model?.trim() ? active.model : null}
+          />
 
           <div className="providerModal_columnsScroll">
             <div className="providerModal_columns">
-              <div
-                className={`providerModal_col providerModal_colCloud ${updateTarget === "cloud" ? "providerModal_colFocused" : ""}`}
-                onClick={() => setUpdateTarget("cloud")}
-                role="presentation"
-              >
-              <div className="providerModal_colHead">
-                <h3 className="providerModal_colTitle">Cloud API</h3>
-                {!isOllamaActive && isCurrentCloud ? (
-                  <span className="providerModal_badge">In use</span>
-                ) : null}
-              </div>
-              <p className="providerModal_colHint">
-                OpenAI, Anthropic, or Gemini. Pick vendor, paste key, set model.
-              </p>
-              <details className="providerModal_details providerModal_detailsInline">
-                <summary>Gemini free tier</summary>
-                <div className="providerModal_detailsBody">
-                  <p>
-                    Key from{" "}
-                    <a
-                      href="https://aistudio.google.com/apikey"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Google AI Studio
-                    </a>
-                    .
-                  </p>
-                </div>
-              </details>
-              <label
-                className="providerModal_label providerModal_labelSelect"
-                onFocus={() => setUpdateTarget("cloud")}
-              >
-                Provider
-                <ProviderSelect
-                  value={selectedId}
-                  onChange={(id) => {
-                    setSelectedId(id as CloudLlmProviderId);
-                    setSaveError(null);
-                  }}
-                  options={providerSelectOptions}
-                  disabled={loading && providers.length === 0}
-                  ariaLabel="Cloud LLM provider"
-                />
-              </label>
-              {loading && providers.length === 0 ? (
-                <p className="providerModal_hint">Loading…</p>
-              ) : (
-                <>
-                  <label className="providerModal_label">
-                    API key
-                    <input
-                      className="providerModal_input"
-                      type="password"
-                      value={apiKeyDraft}
-                      onChange={(event) => setApiKeyDraft(event.target.value)}
-                      onFocus={() => setUpdateTarget("cloud")}
-                      placeholder={
-                        provider?.hasApiKey ? "Leave blank to keep stored key" : "API key"
-                      }
-                      autoComplete="off"
-                    />
-                  </label>
-                  <label className="providerModal_label">
-                    Model
-                    <input
-                      className="providerModal_input"
-                      type="text"
-                      value={modelDraft}
-                      onChange={(event) => setModelDraft(event.target.value)}
-                      onFocus={() => setUpdateTarget("cloud")}
-                      placeholder="Model id"
-                    />
-                  </label>
-                  {saveError ? <p className="providerModal_error">{saveError}</p> : null}
-                </>
-              )}
-            </div>
+              <Cloud
+                focused={updateTarget === "cloud"}
+                onColumnClick={() => setUpdateTarget("cloud")}
+                isOllamaActive={isOllamaActive}
+                isCurrentCloud={isCurrentCloud}
+                loading={loading}
+                providersEmpty={providers.length === 0}
+                selectedId={selectedId}
+                onSelectedIdChange={(id) => {
+                  setSelectedId(id);
+                  setErrors((e) => ({ ...e, cloud: undefined }));
+                }}
+                providerSelectOptions={providerSelectOptions}
+                apiKeyDraft={apiKeyDraft}
+                modelDraft={modelDraft}
+                onApiKeyDraftChange={setApiKeyDraft}
+                onModelDraftChange={setModelDraft}
+                onCloudFieldFocus={() => setUpdateTarget("cloud")}
+                cloudError={errors.cloud}
+                providerHasApiKey={Boolean(provider?.hasApiKey)}
+              />
 
-            <div
-              className={`providerModal_col providerModal_colLocal ${updateTarget === "local" ? "providerModal_colFocused" : ""}`}
-              onClick={() => setUpdateTarget("local")}
-              role="presentation"
-            >
-              <div className="providerModal_colHead">
-                <h3 className="providerModal_colTitle">Local (Ollama)</h3>
-                {isOllamaActive ? <span className="providerModal_badge">In use</span> : null}
-              </div>
-              <p className="providerModal_colHint">
-                Models on this machine. No cloud API key stored for Ollama.
-              </p>
-
-              <label className="providerModal_label">
-                {isOllamaActive ? "Model" : "Model (when activating local)"}
-                <input
-                  className="providerModal_input"
-                  type="text"
-                  value={ollamaModelDraft}
-                  onChange={(event) => setOllamaModelDraft(event.target.value)}
-                  onFocus={() => setUpdateTarget("local")}
-                  placeholder="e.g. llama3"
-                  autoComplete="off"
-                />
-              </label>
-
-              {isOllamaActive ? (
-                <button
-                  type="button"
-                  className="providerModal_secondaryBtn providerModal_secondaryBtnFull"
-                  disabled={saving || ollamaPingBusy}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setOllamaPingBusy(true);
-                    void (async () => {
-                      try {
-                        const h = await fetchOllamaHealth();
-                        if (h.ok) {
-                          appToast.success("Ollama API responded — connection OK.");
-                        } else {
-                          appToast.error(
-                            "Ollama did not respond — check it is running and URL settings.",
-                          );
-                        }
-                      } catch (err) {
-                        appToast.error(err instanceof Error ? err.message : "Check failed");
-                      } finally {
-                        setOllamaPingBusy(false);
-                      }
-                    })();
-                  }}
-                >
-                  {ollamaPingBusy ? "Checking…" : "Test connection (no save)"}
-                </button>
-              ) : null}
-
-              {ollamaSaveError ? <p className="providerModal_error">{ollamaSaveError}</p> : null}
-              {localCtaError ? (
-                <p className="providerModal_error providerModal_errorTight">{localCtaError}</p>
-              ) : null}
-
-              {localHelpVisible ? (
-                <div className="providerModal_localHelp">
-                  <p className="providerModal_localHelpTitle">Install and run Ollama</p>
-                  <ol className="providerModal_localHelpList">
-                    <li>
-                      Install from{" "}
-                      <a href="https://ollama.com/download" target="_blank" rel="noopener noreferrer">
-                        ollama.com/download
-                      </a>
-                    </li>
-                    <li>
-                      Then run:
-                      <pre className="providerModal_code">ollama run llama3</pre>
-                    </li>
-                  </ol>
-                  <p className="providerModal_hint providerModal_hintTight">
-                    Docker: set <code className="providerModal_codeInline">OLLAMA_BASE_URL</code>{" "}
-                    (e.g.{" "}
-                    <code className="providerModal_codeInline">http://host.docker.internal:11434</code>
-                    ).
-                  </p>
-                  <button
-                    type="button"
-                    className="providerModal_retryCheck"
-                    disabled={footerBusy || ollamaPingBusy}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      void (async () => {
-                        setLocalConnecting(true);
-                        try {
-                          const h = await fetchOllamaHealth();
-                          if (h.ok) {
-                            setLocalHelpVisible(false);
-                            appToast.success("Ollama responded — try Update local again.");
-                          } else {
-                            appToast.error("Still can't reach Ollama.");
-                          }
-                        } catch (err) {
-                          appToast.error(err instanceof Error ? err.message : "Check failed");
-                        } finally {
-                          setLocalConnecting(false);
-                        }
-                      })();
-                    }}
-                  >
-                    {localConnecting ? "Checking…" : "Check connection again"}
-                  </button>
-                </div>
-              ) : null}
-            </div>
+              <Local
+                focused={updateTarget === "local"}
+                onColumnClick={() => setUpdateTarget("local")}
+                isOllamaActive={isOllamaActive}
+                ollamaModelDraft={ollamaModelDraft}
+                onOllamaModelDraftChange={setOllamaModelDraft}
+                onLocalFieldFocus={() => setUpdateTarget("local")}
+                localSaveError={errors.localSave}
+                localConnectError={errors.localConnect}
+                localHelpVisible={localHelpVisible}
+                testDisabled={isTestConnectionDisabled(busyState)}
+                testBusy={busyState === "checkingPing"}
+                onTestConnection={handleTestConnection}
+                retryDisabled={isHelpRetryDisabled(busyState)}
+                retryBusy={busyState === "checkingHelpRetry"}
+                onRetryHelpCheck={handleRetryHelpCheck}
+              />
             </div>
           </div>
 
-          <div className="providerModal_footer">
-            <p className="providerModal_footerTarget" aria-live="polite">
-              <span className="providerModal_footerTargetLabel">Update will apply to:</span>{" "}
-              <strong>{updateTarget === "cloud" ? "Cloud (left)" : "Local (right)"}</strong>
-            </p>
-            <p className="providerModal_footerHint">{footerHint}</p>
-            <button
-              type="button"
-              className="providerModal_footerBtn"
-              disabled={footerBusy || ollamaPingBusy}
-              onClick={() => void runUnifiedUpdate()}
-            >
-              {footerButtonLabel}
-            </button>
-          </div>
+          <Footer
+            updateTarget={updateTarget}
+            onUpdateTargetChange={setUpdateTarget}
+            buttonLabel={footerButtonLabel}
+            footerDisabled={isFooterBusy(busyState)}
+            onPrimaryAction={runUnifiedUpdate}
+          />
         </div>
       </section>
     </div>
   );
 }
+
+
+// review

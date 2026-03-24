@@ -3,26 +3,12 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { formatRunWhen } from "@/components/test-run/helpers";
+import type { SessionTestRunsSidebarProps } from "@/components/test-run/types";
 import { fetchAttackTestRuns } from "@/lib/api/attackTestRuns";
 import { useLiveTestRunStore } from "@/lib/stores/live-test-run-store";
 import "@/components/test-run/test-runs-history.css";
 import "./session-test-runs-sidebar.css";
-
-type SessionTestRunsSidebarProps = {
-  sessionId: string;
-};
-
-function formatRunWhen(iso: string): string {
-  try {
-    const d = new Date(iso);
-    return d.toLocaleString(undefined, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    });
-  } catch {
-    return iso;
-  }
-}
 
 export function SessionTestRunsSidebar({ sessionId }: SessionTestRunsSidebarProps) {
   const pathname = usePathname();

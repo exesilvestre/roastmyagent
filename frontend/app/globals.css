@@ -3,7 +3,7 @@
 :root {
   --app-header-height: 3rem;
   --sidebar-width-expanded: 12.5rem;
-  /* Narrow column for saved test runs (session test routes) — frees space for main panel. */
+  /* Narrow column for saved test runs (session test routes).frees space for main panel. */
   --sidebar-width-test-history: 10.5rem;
   --radius-panel: 0.75rem;
   --radius-control: 0.5rem;

@@ -214,7 +214,7 @@ async def execute_http_with_settings(
     if not ok:
         if r.status_code == 404:
             detail = (
-                "HTTP 404 — check path and host/port. If the port matches this app's API "
+                "HTTP 404. Check path and host/port. If the port matches this app's API "
                 "server, use your agent's URL on a different port."
             )
         else:

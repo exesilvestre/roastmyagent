@@ -1,29 +1,6 @@
-import type { RunStepRow } from "@/lib/test-run/types";
-import { getStepPipelinePhase, type StepPipelinePhase } from "@/lib/test-run/stepPipelineStatus";
-
-function phaseStripClass(phase: StepPipelinePhase): string {
-  switch (phase) {
-    case "queued":
-      return "testRun_stripBtnPhase testRun_stripBtnPhase_queued";
-    case "agent_running":
-      return "testRun_stripBtnPhase testRun_stripBtnPhase_http";
-    case "agent_complete":
-      return "testRun_stripBtnPhase testRun_stripBtnPhase_httpDone";
-    case "judging":
-      return "testRun_stripBtnPhase testRun_stripBtnPhase_judge";
-    case "complete":
-      return "testRun_stripBtnPhase testRun_stripBtnPhase_done";
-    default:
-      return "testRun_stripBtnPhase testRun_stripBtnPhase_queued";
-  }
-}
-
-type TestRunStepStripProps = {
-  displaySteps: RunStepRow[];
-  liveByIndex: Record<number, RunStepRow | undefined>;
-  selectedIndex: number;
-  onSelectIndex: (index: number) => void;
-};
+import { phaseStripClass } from "@/components/test-run/helpers";
+import type { TestRunStepStripProps } from "@/components/test-run/types";
+import { getStepPipelinePhase } from "@/lib/test-run/stepPipelineStatus";
 
 export function TestRunStepStrip({
   displaySteps,
